@@ -255,7 +255,10 @@ paths:
                         example: blog.zhenly.cn
                       phone:
                         type: number
-                        description: 手机号码
+                        description: |
+                          手机号码 <br>
+                          xxxxx - 用户设置为不公开
+                          13333333333 - 用户手机号码
                         example: 13300002200
                       info:
                         type: string
@@ -269,7 +272,10 @@ paths:
                       birthDate:
                         type: string
                         format: date
-                        description: 出生日期
+                        description: |
+                          出生日期<br>
+                          10-22 - 用户设置不公开年份<br>
+                          2017-10-12 - 用户出生日期
                         example: '2017-10-12'
                       location:
                         type: string
@@ -444,10 +450,6 @@ paths:
                           type: string
                           description: 个人简介
                           example: 'Hello, world'
-                        interFollow:
-                          type: boolean
-                          description: 是否互相关注
-                          example: true
                     description: |
                       关注者信息列表
         '400':
@@ -511,10 +513,6 @@ paths:
                           type: string
                           description: 个人简介
                           example: 'Hello, world'
-                        interFollow:
-                          type: boolean
-                          description: 是否互相关注
-                          example: true
                     description: |
                       关注者信息列表
         '400':
