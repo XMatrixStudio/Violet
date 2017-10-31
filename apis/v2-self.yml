@@ -243,15 +243,10 @@ paths:
               schema:
                 type: object
                 properties:
-                  name:
-                    type: string
-                    description: |
-                      站点名称
-                    example: XMatrix Blog
-                  icon:
-                    type: string
-                    description: 站点图标
-                    example: 'https://example.com/598ee9df75d8ad07f2f6f0d1.png'
+                  auth:
+                    type: boolean
+                    description: 是否已经授权
+                    example: true
         '400':
           description: >
             获取授权信息失败
@@ -880,3 +875,54 @@ paths:
                       error_email - 该邮箱未注册<br>
                       invalid_email - 邮箱格式不合法<br>
                       limit_time - 每隔一分钟才能发一次
+  /Utils/ClientInfo/{clientId}:
+    get:
+      tags:
+        - Utils
+      summary: >
+        获取站点信息
+      parameters:
+        - name: clientId
+          in: path
+          description: >
+            站点id
+          required: true
+          schema:
+            type : string
+      responses:
+        '200':
+          description: >
+            获取成功
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: |
+                      站点名称
+                    example: XMatrix Blog
+                  icon:
+                    type: string
+                    description: 站点图标
+                    example: 'https://example.com/598ee9df75d8ad07f2f6f0d1.png'
+                  detail:
+                    type: string
+                    description: |
+                      站点介绍
+                    example: XMatrix Blog
+        '400':
+          description: >
+            获取失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      error_cilentId - 站点不存在<br>
+                    example: string
+                  icon:
