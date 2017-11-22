@@ -12,14 +12,6 @@ tags:
   - name: Utils
     description: 工具
 components:
-  parameters:
-    userToken:
-      name: token
-      in: cookie
-      description: 身份认证令牌，使用后会自动更新
-      required: true
-      schema:
-        type: string
   responses:
     errorToken:
       description: 身份令牌认证失败
@@ -187,8 +179,6 @@ paths:
         - Users
       summary: >
         获取已授权网站列表
-      parameters:
-        - $ref: '#/components/parameters/userToken'
       responses:
         '201':
           description: |
@@ -226,7 +216,6 @@ paths:
       summary: >
         获取授权信息
       parameters:
-        - $ref: '#/components/parameters/userToken'
         - name: id
           in: path
           description: >
@@ -267,7 +256,6 @@ paths:
       summary: >
         授权登陆
       parameters:
-        - $ref: '#/components/parameters/userToken'
         - name: id
           in: path
           description: >
@@ -319,7 +307,6 @@ paths:
       summary: >
         取消对某个网站的授权
       parameters:
-        - $ref: '#/components/parameters/userToken'
         - name: id
           in: path
           description: >
@@ -429,7 +416,6 @@ paths:
       summary: >
         更改个人头像
       parameters:
-        - $ref: '#/components/parameters/userToken'
         - name: img
           in: query
           required: true
@@ -471,8 +457,6 @@ paths:
         - Users
       summary: |
         获取个人信息
-      parameters:
-        - $ref: '#/components/parameters/userToken'
       responses:
         '200':
           description: 获取用户基本信息成功
@@ -547,7 +531,6 @@ paths:
         更改个人信息
       description: 修改用户信息，如果不修改的可以不提交，可只提交需要修改的部分，但一般情况下都是全部提交的。
       parameters:
-        - $ref: '#/components/parameters/userToken'
         - name: sex
           in: query
           required: false
@@ -634,8 +617,6 @@ paths:
         - Users
       summary: >
         获取开发网站列表
-      parameters:
-        - $ref: '#/components/parameters/userToken'
       responses:
         '201':
           description: |
@@ -672,8 +653,6 @@ paths:
         - Users
       summary: >
         获取开发网站信息
-      parameters:
-        - $ref: '#/components/parameters/userToken'
         - name: id
           in: path
           description: >
@@ -733,8 +712,6 @@ paths:
         - Users
       summary: >
         修改开发网站信息
-      parameters:
-        - $ref: '#/components/parameters/userToken'
         - name: id
           in: path
           description: >
@@ -779,8 +756,6 @@ paths:
         - Users
       summary: >
         删除某个开发应用
-      parameters:
-        - $ref: '#/components/parameters/userToken'
         - name: id
           in: path
           description: >
