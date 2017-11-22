@@ -653,6 +653,7 @@ paths:
         - Users
       summary: >
         获取开发网站信息
+      parameters:
         - name: id
           in: path
           description: >
@@ -712,6 +713,7 @@ paths:
         - Users
       summary: >
         修改开发网站信息
+      parameters:
         - name: id
           in: path
           description: >
@@ -756,6 +758,7 @@ paths:
         - Users
       summary: >
         删除某个开发应用
+      parameters:
         - name: id
           in: path
           description: >
