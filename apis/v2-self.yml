@@ -708,7 +708,7 @@ paths:
                       invalid_clientId - 无效的站点ID<br>
         '401':
           $ref: '#/components/responses/errorToken'
-    post:
+    patch:
       tags:
         - Users
       summary: >
@@ -903,4 +903,3 @@ paths:
                     description: |
                       error_cilentId - 站点不存在<br>
                     example: string
-                  icon:
