@@ -524,7 +524,7 @@ paths:
                         example: 0
         '401':
           $ref: '#/components/responses/errorToken'
-    put:
+    patch:
       tags:
         - Users
       summary: >
@@ -693,7 +693,25 @@ paths:
                     type: string
                     description: |
                       授权后回调地址
-                    example: 10086
+                    example: https://example.com/
+                  detail:
+                    type: string
+                    description: |
+                      站点描述
+                    example: 这是一个站点
+                  data:
+                    type: object
+                    properties:
+                      authCount:
+                        type: string
+                        description: |
+                          授权用户数
+                        example: 2131
+                      LoginCount:
+                        type: string
+                        description: |
+                          登陆次数
+                        example: 21313
         '400':
           description: >
             获取开发网站信息失败
@@ -735,6 +753,13 @@ paths:
           required: false
           schema:
             type : string
+        - name: detail
+          in: query
+          description: >
+            网站描述
+          required: false
+          schema:
+            type : string
       responses:
         '201':
           description: |
@@ -773,6 +798,86 @@ paths:
         '400':
           description: >
             删除失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: >
+                      invalid_clientId - 无效的站点ID<br>
+        '401':
+          $ref: '#/components/responses/errorToken'
+  /User/Client/Icon/{id}:
+    put:
+      tags:
+        - Users
+      summary: >
+        修改开发网站图标
+      parameters:
+        - name: id
+          in: path
+          description: >
+            站点ID
+          required: true
+          schema:
+            type : string
+        - name: icon
+          in: query
+          description: >
+            图标文件
+          required: true
+          schema:
+            type : string
+      responses:
+        '201':
+          description: |
+            成功修改
+        '400':
+          description: >
+            修改失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: >
+                      invalid_clientId - 无效的站点ID<br>
+        '401':
+          $ref: '#/components/responses/errorToken'
+  /User/Client/Key/{id}:
+    put:
+      tags:
+        - Users
+      summary: >
+        修改开发网站Key
+      parameters:
+        - name: id
+          in: path
+          description: >
+            站点ID
+          required: true
+          schema:
+            type : string
+      responses:
+        '201':
+          description: |
+            成功修改
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    description: >
+                      返回的新KEY
+        '400':
+          description: >
+            修改失败
           content:
             'application/json':
               schema:
