@@ -647,6 +647,52 @@ paths:
                       开发网站信息列表
         '401':
           $ref: '#/components/responses/errorToken'
+  /Users/Client/:
+    post:
+      tags:
+        - Users
+      summary: >
+        新增开发网站
+      parameters:
+        - name: name
+          in: query
+          description: >
+            站点名称
+          required: true
+          schema:
+            type : string
+        - name: detail
+          in: query
+          description: >
+            站点详情
+          required: true
+          schema:
+            type : string
+        - name: url
+          in: query
+          description: >
+            站点回调地址
+          required: true
+          schema:
+            type : string
+      responses:
+        '201':
+          description: |
+            新建成功
+        '400':
+          description: >
+            新建开发网站失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: >
+                      max_clients - 当前账号以达到最大申请数<br>
+        '401':
+          $ref: '#/components/responses/errorToken'
   /Users/Client/{id}:
     get:
       tags:
