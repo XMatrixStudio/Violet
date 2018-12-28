@@ -1,0 +1,386 @@
+openapi: 3.0.0
+info:
+  version: 3.0.0
+  title: Violet User System APIs
+  description: Violet用户授权系统API列表
+servers:
+  - url: 'https://api.xmatrix.studio/violet/v3'
+    description: XMatrix OAuth APIs
+tags:
+  - name: Verify
+    description: 认证
+  - name: Users
+    description: 用户
+  - name: Utils
+    description: 工具
+components:
+  parameters:
+    accessToken:
+      name: accessToken
+      in: query
+      description: 用户令牌
+      required: true
+      schema:
+        type: string
+    userId:
+      name: userId
+      in: query
+      description: 用户唯一ID
+      required: true
+      schema:
+        type: number
+    clientSecret:
+      name: clientSecret
+      in: query
+      required: true
+      description: 通过网站key加密的一段认证信息(10分钟后失效)。使用sdk生成
+      schema:
+        type: string
+  responses:
+    error:
+      description: 权限错误
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                description: |
+                  invalid_scope - 无效的权限范围<br/>
+                  invalid_token - 用户令牌无效<br/>
+                  timeout_token - 用户令牌已过期<br/>
+                  invalid_secret - 网站认证信息无效<br/>
+                  timeout_secret - 网站认证信息已过期<br/>
+                example: string
+paths:
+  /Verify/Password:
+    post:
+      tags:
+        - Verify
+      summary: |
+        使用用户账号密码登陆(客户端需要在Violet开发者中心请求权限)
+      parameters:
+        - name: response_type
+          in: query
+          description: |
+            授权类型，此值固定为"password"
+          required: true
+          schema:
+            type: string
+        - name: client_id
+          in: query
+          required: true
+          description: |
+            客户端ID
+          schema:
+            type: string
+        - name: user_name
+          in: query
+          required: true
+          description: |
+            用户名
+          schema:
+            type: string
+        - name: user_password
+          in: query
+          required: true
+          description: |
+            用户密码(sha512处理)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: |
+            验证成功
+          content:
+            回调参数:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    description: |
+                      Authorization code，注意此code会在1分钟内过期
+                    example: string
+        '403':
+          description: |
+            拒绝授权
+          content:
+            回调参数:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    description: |
+                      拒绝原因：<br/>
+                      error_password -  用户名或密码错误<br/>
+                      out_of_limit   -  请求过于频繁(10分钟内超过5次)
+                    example: string
+  /Verify/Authorize:
+    get:
+      tags:
+        - Verify
+      summary: |
+        跳转到violet登陆
+      parameters:
+        - name: response_type
+          in: query
+          description: |
+            授权类型，此值固定为"code"
+          required: true
+          schema:
+            type: string
+        - name: client_id
+          in: query
+          required: true
+          description: |
+            客户端ID
+          schema:
+            type: string
+        - name: state
+          in: query
+          description: >
+            client端的状态值。用于第三方应用防止CSRF攻击，成功授权后回调时会原样带回。请务必严格按照流程检查用户与state参数状态的绑定。
+          required: true
+          schema:
+            type: string
+        - name: scope
+          in: query
+          description: |
+            请求的的权限列表，使用 "-" 分割<br/>
+            默认为basic<br/>
+            权限列表：<br/>
+              basic   -   用户ID与基本信息(名字、头像)[必须]<br/>
+              info    -   用户个人个性信息(简介、邮箱、手机、个人主页、生日、性别、所在地)<br/>
+              email   -   通过Violet向用户发送邮件通知(用户中心可以管理)
+          required: false
+          schema:
+            type: string
+        - name: redirect_uri
+          in: query
+          description: |
+            回调地址，成功授权后回调时会原样带回
+          required: false
+          schema:
+            type: string
+        - name: quick_mode
+          in: query
+          description: |
+            快速授权模式，如果用户已经对该客户端授权，则直接返回结果
+          required: false
+          schema:
+            type: boolean
+        - name: is_mobile
+          in: query
+          description: |
+            是否指定移动端样式。不传则自动适配<br/>
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '301':
+          description: |
+            用户授权成功，跳转到预先在violet留下的回调地址，认证成功后，再由网站服务器自行跳转
+          content:
+            回调参数:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    description: |
+                      Authorization code，注意此code会在1分钟内过期
+                    example: string
+                  state:
+                    type: string
+                    description: |
+                      client端的状态值，原样带回
+                    example: string
+                  redirect_uri:
+                    type: string
+                    description: |
+                      回调地址，原样带回
+                    example: string
+  /Verify/Token:
+    post:
+      tags:
+        - Verify
+      summary: 验证code，获取accessToken
+      parameters:
+        - name: grantType
+          in: query
+          description: |
+            授权类型，此值固定为“authorization_code”
+          required: true
+          schema:
+            type: string
+        - name: code
+          in: query
+          description: |
+            用户确认授权后返回的Authorization code，注意此code会在1分钟内过期。
+          required: true
+          schema:
+            type: string
+        - name: clientSecret
+          in: query
+          required: true
+          description: |
+            通过网站key加密的一段认证信息(10分钟后失效)。使用sdk生成
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          description: |
+            获取code的时候提供的state
+          schema:
+            type: string
+      responses:
+        '200':
+          description: |
+            认证成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    description: |
+                      访问令牌(有效生命周期14天)，重新获取后上一个令牌立即失效
+                    example: string
+                  userId:
+                    type: number
+                    description: |
+                      用户唯一ID
+                    example: 598ee9df75d8ad07f2f6f0d1
+        '400':
+          description: |
+            获取token失败
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: >
+                      invalid_type - 请求类型错误<br/>
+                      invalid_code - Authorization code 不合法<br/>
+                      timeout_code - Authorization code 已过期<br/>
+                      invalid_state - state无效<br/>
+                      invalid_id - 网站id不存在<br/>
+                      invalid_secret - 网站认证信息无效<br/>
+                    example: string
+  /Users/Info:
+    get:
+      tags:
+        - Users
+      summary: 获取用户基本信息
+      parameters:
+        - $ref: '#/components/parameters/accessToken'
+        - $ref: '#/components/parameters/userId'
+        - $ref: '#/components/parameters/clientSecret'
+      responses:
+        '200':
+          description: 获取用户基本信息成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: string
+                    description: 用户有效邮箱
+                    example: zhenlychen@foxmail.com
+                  name:
+                    type: string
+                    description: 用户唯一名称
+                    example: zhenlychen
+                  detail:
+                    type: object
+                    description: 用户个性信息
+                    properties:
+                      web:
+                        type: string
+                        description: 个人主页
+                        example: blog.zhenly.cn
+                      phone:
+                        type: number
+                        description: |
+                          手机号码 <br/>
+                          xxxxx - 用户设置为不公开
+                          13333333333 - 用户手机号码
+                        example: 13300002200
+                      info:
+                        type: string
+                        description: 个人简介
+                        example: 'Hello, world'
+                      sex:
+                        type: number
+                        description: |
+                          0 - 未确定<br/> 1 - 男<br/> 2 - 女<br/> 3 - 其他
+                        example: 1
+                      birthDate:
+                        type: string
+                        format: date
+                        description: |
+                          出生日期<br/>
+                          10-22 - 用户设置不公开年份<br/>
+                          2017-10-12 - 用户出生日期
+                        example: '2017-10-12'
+                      location:
+                        type: string
+                        description: 所在地
+                        example: GuangZhou
+                      avatar:
+                        type: string
+                        description: 用户头像
+                        example: 'https://example.com/fjiewrsdawd.png'
+        '401':
+          $ref: '#/components/responses/error'
+
+  /Utils/Secret:
+    get:
+      tags:
+        - Utils
+      summary: 生成clientSecret
+      description: clientSecret推荐通过SDK生成，如果你的平台上没有对应的SDK可以使用此API生成，同样只有10分钟有效期。
+      parameters:
+        - name: client_id
+          in: query
+          description: 网站ID
+          required: true
+          schema:
+            type: string
+        - name: client_key
+          in: query
+          description: 网站KEY，注意保管网站Key，建议定时更改，以防泄露导致恶意请求被封号。
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clientSecret:
+                    type: string
+                    example: string
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_id - 网站ID不存在<br/> invalid_id - 网站key不正确
+                    example: string
