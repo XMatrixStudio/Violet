@@ -1,0 +1,83 @@
+openapi: 3.0.2
+
+info:
+  version: 3.0.0
+  title: Violet User System Internal APIs
+  description: Violet用户授权系统内部API列表
+  termsOfService: 'https://xmatrix.studio/terms'
+  contact:
+    name: XMatrix Studio
+    url: 'https://oauth.xmatrix.studio/support'
+    email: 'a@xmatrix.studio'
+  license:
+    name: MIT License
+    url: 'https://opensource.org/licenses/MIT'
+
+servers:
+  - url: 'https://api.xmatrix.studio/violet/v3'
+    description: XMatrix OAuth APIs
+
+tags:
+  - name: Users
+    description: 与用户相关的接口，包括注册、登录、数据、授权等
+
+components:
+  # schemas:
+  # responses:
+  # parameters:
+  # examples:
+  # requestBodies:
+  # headers:
+  # securitySchemas:
+  # links:
+  # callbacks:
+
+paths:
+  '/users/register':
+    post:
+      tags:
+        - Users
+      summary: |
+        注册账号
+      parameters:
+        - name: name
+          in: query
+          description: |
+            用户唯一名称<br>
+            /^[a-zA-Z][a-zA-Z0-9_]{3,18}$/ 必须字母开头
+          required: true
+          schema:
+            type: string
+        - name: email
+          in: query
+          description: |
+            用户唯一邮箱<br>
+            /^(\w)+(.\w+)*@(\w)+((.\w{2,9}))$/
+          required: true
+          schema:
+            type: string
+        - name: password
+          in: query
+          description: |
+            用户密码的SHA512散列值<br>
+            密码限制为6-24位，不允许纯数字
+          required: true
+          schema:
+            type: string
+        - name: vcode
+          in: query
+          description: |
+            图形验证码
+          required: true
+          schema:
+            type: string
+        - name: vcode_id
+          in: query
+          description: |
+            图形验证码的ID
+          schema:
+            type: string
+      responses:
+        '201':
+          description: |
+            注册成功
