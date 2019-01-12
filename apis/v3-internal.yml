@@ -1,9 +1,10 @@
 openapi: 3.0.2
 
 info:
-  version: 3.0.0
+  version: '3.0.0-alpha'
   title: Violet User System Internal APIs
-  description: Violet用户授权系统内部API列表
+  description: |
+    Violet用户授权系统内部API列表，RESTful-Like
   termsOfService: 'https://xmatrix.studio/terms'
   contact:
     name: XMatrix Studio
@@ -14,12 +15,16 @@ info:
     url: 'https://opensource.org/licenses/MIT'
 
 servers:
-  - url: 'https://api.xmatrix.studio/violet/v3'
+  - url: 'https://oauth.xmatrix.studio/api/v3/i'
     description: XMatrix OAuth APIs
 
 tags:
-  - name: Users
-    description: 与用户相关的接口，包括注册、登录、数据、授权等
+  - name: User
+    description: |
+      与用户相关的接口，包括注册、登录、登出、数据、授权等
+  - name: Util
+    description: |
+      工具类接口，包括获取图形验证码等
 
 components:
   # schemas:
@@ -33,10 +38,13 @@ components:
   # callbacks:
 
 paths:
-  '/users/register':
+  '/user':
+    get:
+      tags: [User]
+      summary: |
+        获取用户信息
     post:
-      tags:
-        - Users
+      tags: [User]
       summary: |
         注册账号
       parameters:
@@ -71,13 +79,50 @@ paths:
           required: true
           schema:
             type: string
-        - name: vcode_id
-          in: query
-          description: |
-            图形验证码的ID
-          schema:
-            type: string
       responses:
         '201':
           description: |
             注册成功
+    patch:
+      tags: [User]
+      summary: |
+        修改用户个人信息
+
+  '/user/email':
+    post:
+      tags: [User]
+      summary: |
+        认证邮箱
+    put:
+      tags: [User]
+      summary: |
+        发送邮箱认证邮件
+
+  '/user/session':
+    post:
+      tags: [User]
+      summary: |
+        登录账号
+    delete:
+      tags: [User]
+      summary: |
+        登出账号
+
+  '/util/vcode':
+    get:
+      tags: [Util]
+      summary: |
+        获取图形验证码
+      description: |
+        用于图形验证码的获取，返回png格式的验证码图形的BASE64字符串，其中验证码为4位数字。<br>
+        该接口目前仅用于注册验证。
+      responses:
+        '200':
+          description: |
+            获取成功
+          content:
+            'text/plain':
+              schema:
+                type: string
+              example:
+                data:image/png;base64,iVBORw0KGgoAAAAN...
