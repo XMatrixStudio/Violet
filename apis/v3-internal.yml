@@ -52,18 +52,21 @@ paths:
           in: query
           description: |
             用户唯一名称<br>
-            /^[a-zA-Z][a-zA-Z0-9_]{3,18}$/ 必须字母开头
+            以字母开头，由字母、数字、下划线、减号组成，最多32位<br>
+            /^[a-zA-Z][a-zA-Z0-9_-]{0,31}$/
           required: true
           schema:
             type: string
+            pattern: '^[a-zA-Z][a-zA-Z0-9_-]{0,31}$'
         - name: email
           in: query
           description: |
             用户唯一邮箱<br>
-            /^(\w)+(.\w+)*@(\w)+((.\w{2,9}))$/
+            /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
           required: true
           schema:
             type: string
+            pattern: '^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$'
         - name: password
           in: query
           description: |
@@ -83,6 +86,27 @@ paths:
         '201':
           description: |
             注册成功
+        '400':
+          description: |
+            注册失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      error_vcode - 图形验证码错误<br>
+                      exist_email - 邮箱已存在<br>
+                      exist_name - 用户名已存在<br>
+                      invalid_email - 非法邮箱<br>
+                      invalid_name - 非法用户名<br>
+                      invalid_password - 非法密码散列值<br>
+                      invalid_vcode - 非法图形验证码<br>
+                      not_exist_vcode - 不存在图形验证码记录<br>
+                      reserved_name - 用户名保留<br>
+                    example: 'exist_name'
     patch:
       tags: [User]
       summary: |
