@@ -3,8 +3,7 @@ openapi: 3.0.2
 info:
   version: '3.0.0-alpha'
   title: Violet User System Internal APIs
-  description: |
-    Violet用户授权系统内部API列表，RESTful-Like
+  description: Violet用户授权系统内部API列表，RESTful-Like
   termsOfService: 'https://xmatrix.studio/terms'
   contact:
     name: XMatrix Studio
@@ -15,16 +14,14 @@ info:
     url: 'https://opensource.org/licenses/MIT'
 
 servers:
-  - url: 'https://oauth.xmatrix.studio/api/v3/i'
-    description: XMatrix OAuth APIs
+- url: 'https://oauth.xmatrix.studio/api/v3/i'
+  description: XMatrix OAuth APIs
 
 tags:
-  - name: User
-    description: |
-      与用户相关的接口，包括注册、登录、登出、数据、授权等
-  - name: Util
-    description: |
-      工具类接口，包括获取图形验证码等
+- name: User
+  description: 与用户相关的接口，包括注册、登陆、登出、数据、授权等
+- name: Util
+  description: 工具类接口，包括获取图形验证码等
 
 components:
   # schemas:
@@ -41,54 +38,50 @@ paths:
   '/user':
     get:
       tags: [User]
-      summary: |
-        获取用户信息
+      summary: 获取用户信息
     post:
       tags: [User]
-      summary: |
-        注册账号
+      summary: 注册账号
       parameters:
-        - name: name
-          in: query
-          description: |
-            用户唯一名称<br>
-            以字母开头，由字母、数字、下划线、减号组成，最多32位<br>
-            /^[a-zA-Z][a-zA-Z0-9_-]{0,31}$/
-          required: true
-          schema:
-            type: string
-            pattern: '^[a-zA-Z][a-zA-Z0-9_-]{0,31}$'
-        - name: email
-          in: query
-          description: |
-            用户唯一邮箱<br>
-            /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
-          required: true
-          schema:
-            type: string
-            pattern: '^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$'
-        - name: password
-          in: query
-          description: |
-            用户密码的SHA512散列值<br>
-            密码限制为6-24位，不允许纯数字
-          required: true
-          schema:
-            type: string
-        - name: vcode
-          in: query
-          description: |
-            图形验证码
-          required: true
-          schema:
-            type: string
+      - name: name
+        in: query
+        description: |
+          用户唯一名称<br>
+          以字母开头，由字母、数字、下划线、减号组成，最多32位<br>
+          /^[a-zA-Z][a-zA-Z0-9_-]{0,31}$/<br>
+        required: true
+        schema:
+          type: string
+          pattern: '^[a-zA-Z][a-zA-Z0-9_-]{0,31}$'
+      - name: email
+        in: query
+        description: |
+          用户唯一邮箱<br>
+          /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/<br>
+        required: true
+        schema:
+          type: string
+          format: email
+          pattern: '^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$'
+      - name: password
+        in: query
+        description: |
+          用户密码的SHA512散列值<br>
+          密码限制为6-24位，不允许纯数字<br>
+        required: true
+        schema:
+          type: string
+      - name: vcode
+        in: query
+        description: 图形验证码
+        required: true
+        schema:
+          type: string
       responses:
         '201':
-          description: |
-            注册成功
+          description: 注册成功
         '400':
-          description: |
-            注册失败
+          description: 注册失败
           content:
             'application/json':
               schema:
@@ -109,41 +102,120 @@ paths:
                     example: 'exist_name'
     patch:
       tags: [User]
-      summary: |
-        修改用户个人信息
+      summary: 修改用户个人信息
 
   '/user/email':
     post:
       tags: [User]
-      summary: |
-        认证邮箱
+      summary: 发送邮箱认证邮件
+      parameters:
+      - name: operator
+        in: query
+        description: 邮箱认证操作的用途
+        required: true
+        schema:
+          type: string
+          enum:
+          - register
+      - name: vcode
+        in: query
+        description: 图形验证码
+        required: true
+        schema:
+          type: string
+      - name: email
+        in: query
+        description: |
+          需要认证的邮箱，仅在用途为register才必选<br>
+          /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/<br>
+        schema:
+          type: string
+          format: email
+          pattern: '^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$'
+      responses:
+        '201':
+          description: 发送认证邮件成功
+        '400':
+          description: 发送认证邮件失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      通用错误码<br>
+                      error_vcode - 图形验证码错误<br>
+                      invalid_operator - 非法操作<br>
+                      not_exist_vcode - 不存在图形验证码记录<br><br>
+                      操作register错误码<br>
+                      exist_email - 邮箱已存在<br>
+                      invalid_email - 非法邮箱<br>
+                    example: 'error_vcode'
     put:
       tags: [User]
-      summary: |
-        发送邮箱认证邮件
+      summary: 认证邮箱
 
   '/user/session':
     post:
       tags: [User]
-      summary: |
-        登录账号
+      summary: 登陆账号
+      parameters:
+      - name: user
+        in: query
+        description: 用户唯一标识，可以是用户名或邮箱
+        required: true
+        schema:
+          type: string
+          pattern: '(^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$)|(^[a-zA-Z][a-zA-Z0-9_-]{0,31}$)'
+      - name: password
+        in: query
+        description: 用户密码的SHA512散列值
+        required: true
+        schema:
+          type: string
+      - name: remember
+        in: query
+        description: 是否记住密码
+        schema:
+          type: boolean
+      responses:
+        '201':
+          description: 登陆成功
+        '400':
+          description: 登陆失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      error_user_or_password - 用户唯一标识或密码错误<br>
+                      invalid_email - 非法邮箱<br>
+                      invalid_name - 非法用户名<br>
+                      invalid_password - 非法密码散列值<br>
+                      invalid_user - 非法用户唯一标识<br>
+                    example: 'error_user_or_password'
     delete:
       tags: [User]
-      summary: |
-        登出账号
+      summary: 登出账号
+      responses:
+        '204':
+          description: 登出成功
 
   '/util/vcode':
     get:
       tags: [Util]
-      summary: |
-        获取图形验证码
+      summary: 获取图形验证码
       description: |
         用于图形验证码的获取，返回png格式的验证码图形的BASE64字符串，其中验证码为4位数字。<br>
-        该接口目前仅用于注册验证。
+        该接口目前仅用于注册验证。<br>
       responses:
         '200':
-          description: |
-            获取成功
+          description: 获取成功
           content:
             'text/plain':
               schema:
