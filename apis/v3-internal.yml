@@ -107,36 +107,37 @@ paths:
   '/user/email':
     post:
       tags: [User]
-      summary: 发送邮箱认证邮件
+      summary: 发送邮箱验证邮件
       parameters:
       - name: operator
         in: query
-        description: 邮箱认证操作的用途
+        description: 邮箱验证操作的用途
         required: true
         schema:
           type: string
           enum:
           - register
+      - name: email
+        in: query
+        description: |
+          需要认证的邮箱，仅在用途为register才必选<br>
+          /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/<br>
+        required: true
+        schema:
+          type: string
+          format: email
+          pattern: '^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$'
       - name: vcode
         in: query
         description: 图形验证码
         required: true
         schema:
           type: string
-      - name: email
-        in: query
-        description: |
-          需要认证的邮箱，仅在用途为register才必选<br>
-          /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/<br>
-        schema:
-          type: string
-          format: email
-          pattern: '^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$'
       responses:
         '201':
-          description: 发送认证邮件成功
+          description: 发送验证邮件成功
         '400':
-          description: 发送认证邮件失败
+          description: 发送验证邮件失败
           content:
             'application/json':
               schema:
@@ -145,17 +146,50 @@ paths:
                   error:
                     type: string
                     description: |
-                      通用错误码<br>
-                      error_vcode - 图形验证码错误<br>
-                      invalid_operator - 非法操作<br>
-                      not_exist_vcode - 不存在图形验证码记录<br><br>
-                      操作register错误码<br>
+                      error_captcha - 图形验证码错误<br>
                       exist_email - 邮箱已存在<br>
                       invalid_email - 非法邮箱<br>
-                    example: 'error_vcode'
+                      invalid_operator - 非法操作<br>
+                      not_exist_captcha - 不存在图形验证记录<br>
+                      send_fail - 发送邮件未知错误<br>
+                    example: 'exist_email'
     put:
       tags: [User]
       summary: 认证邮箱
+      parameters:
+      - name: operator
+        in: query
+        description: 邮箱验证操作的用途
+        required: true
+        schema:
+          type: string
+          enum:
+          - register
+      - name: code
+        in: query
+        description: 邮箱验证码
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: 验证成功
+        '400':
+          description: 验证失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      error_code - 验证码错误<br>
+                      invalid_code - 非法验证码<br>
+                      invalid_operator - 非法操作<br>
+                      not_exist_code - 不存在邮箱验证记录<br>
+                      timeout_code - 验证码已过期<br>
+                    example: 'error_code'
 
   '/user/session':
     post:
@@ -206,7 +240,7 @@ paths:
         '204':
           description: 登出成功
 
-  '/util/vcode':
+  '/util/captcha':
     get:
       tags: [Util]
       summary: 获取图形验证码
