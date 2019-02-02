@@ -16,6 +16,8 @@ info:
 servers:
 - url: 'https://oauth.xmatrix.studio/api/v3/i'
   description: XMatrix OAuth APIs
+- url: 'https://test.xmatrix.studio/api/violet/v3/i/'
+  description: XMatrix OAuth Test APIs
 
 tags:
 - name: User
@@ -39,9 +41,84 @@ paths:
     get:
       tags: [User]
       summary: 获取用户信息
+      description: 获取当前用户信息，需用户登陆
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: string
+                    description: 用户登陆邮箱
+                    format: email
+                  phone:
+                    type: string
+                    description: 用户登陆手机
+                    format: phone
+                    example: '12345678901'
+                  name:
+                    type: string
+                    description: 用户名
+                    example: 'XMatrixStudio'
+                  class:
+                    type: number
+                    description: 用户级别
+                    example: 99
+                  createTime:
+                    type: string
+                    description: 用户注册的时间
+                    format: date-time
+                  info:
+                    type: object
+                    properties:
+                      avatar:
+                        type: string
+                        description: 头像URL
+                        format: url
+                        example: 'http://violet-1252808268.cosgz.myqcloud.com/0.png'
+                      bio:
+                        type: string
+                        description: 个人签名
+                        example: 'Hello, world!'
+                      email:
+                        type: string
+                        description: 联系邮箱
+                        format: email
+                      location:
+                        type: string
+                        description: 地址
+                        example: 'Guangzhou, China'
+                      nickname:
+                        type: string
+                        description: 昵称
+                        example: '未知矩阵'
+                      url:
+                        type: string
+                        description: 个人主页
+                        format: url
+                        example: 'https://oauth.xmatrix.studio/'
+        '401':
+          description: 获取失败，身份验证未通过
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_token - 未进行身份验证<br>
+                      timeout_token - 身份验证已过期<br>
+                    example: 'invalid_token'
     post:
       tags: [User]
       summary: 注册账号
+      description: |
+        需验证注册邮箱方可进行注册<br>
+        该方法可多次请求，直到注册成功或验证状态过期，则验证状态将被删除<br>
       parameters:
       - name: name
         in: query
@@ -53,16 +130,6 @@ paths:
         schema:
           type: string
           pattern: '^[a-zA-Z][a-zA-Z0-9_-]{0,31}$'
-      - name: email
-        in: query
-        description: |
-          用户唯一邮箱<br>
-          /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/<br>
-        required: true
-        schema:
-          type: string
-          format: email
-          pattern: '^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$'
       - name: password
         in: query
         description: |
@@ -71,10 +138,11 @@ paths:
         required: true
         schema:
           type: string
-      - name: vcode
+      - name: nickname
         in: query
-        description: 图形验证码
-        required: true
+        description: |
+          用户昵称<br>
+          不限字符类型，最多32位<br>
         schema:
           type: string
       responses:
@@ -90,24 +158,26 @@ paths:
                   error:
                     type: string
                     description: |
-                      error_vcode - 图形验证码错误<br>
-                      exist_email - 邮箱已存在<br>
                       exist_name - 用户名已存在<br>
-                      invalid_email - 非法邮箱<br>
                       invalid_name - 非法用户名<br>
+                      invalid_nickname - 非法昵称<br>
                       invalid_password - 非法密码散列值<br>
-                      invalid_vcode - 非法图形验证码<br>
-                      not_exist_vcode - 不存在图形验证码记录<br>
+                      not_exist_email - 不存在邮箱记录<br>
                       reserved_name - 用户名保留<br>
                     example: 'exist_name'
     patch:
       tags: [User]
       summary: 修改用户个人信息
+      deprecated: true
 
   '/user/email':
     post:
       tags: [User]
       summary: 发送邮箱验证邮件
+      description: |
+        需图形验证放可发送邮箱验证邮件<br>
+        该方法不可多次请求，1分钟内仅可发送1次，且每次请求后均删除图形验证状态<br>
+        发送邮件是阻塞请求，即只有发送成功或失败该方法才作出响应<br>
       parameters:
       - name: operator
         in: query
@@ -150,12 +220,15 @@ paths:
                       exist_email - 邮箱已存在<br>
                       invalid_email - 非法邮箱<br>
                       invalid_operator - 非法操作<br>
+                      limit_time - 发送时间间隔限制<br>
                       not_exist_captcha - 不存在图形验证记录<br>
-                      send_fail - 发送邮件未知错误<br>
+                      send_fail - 发送失败<br>
                     example: 'exist_email'
     put:
       tags: [User]
       summary: 认证邮箱
+      description: |
+        邮箱验证状态时限为5分钟<br>
       parameters:
       - name: operator
         in: query
@@ -195,14 +268,17 @@ paths:
     post:
       tags: [User]
       summary: 登陆账号
+      description: |
+        使用用户名、登陆邮箱、登陆手机等唯一标识之一登陆<br>
+        普通登陆身份验证有效时限为1天，且以上一次有效请求开始计时<br>
+        自动登陆身份验证有效时限为15天<br>
       parameters:
       - name: user
         in: query
-        description: 用户唯一标识，可以是用户名或邮箱
+        description: 用户唯一标识，可以是用户名或邮箱或手机
         required: true
         schema:
           type: string
-          pattern: '(^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$)|(^[a-zA-Z][a-zA-Z0-9_-]{0,31}$)'
       - name: password
         in: query
         description: 用户密码的SHA512散列值
@@ -211,7 +287,7 @@ paths:
           type: string
       - name: remember
         in: query
-        description: 是否记住密码
+        description: 是否自动登陆
         schema:
           type: boolean
       responses:
@@ -236,6 +312,7 @@ paths:
     delete:
       tags: [User]
       summary: 登出账号
+      description: 该方法响应固定成功，即使未登陆
       responses:
         '204':
           description: 登出成功
@@ -245,8 +322,8 @@ paths:
       tags: [Util]
       summary: 获取图形验证码
       description: |
-        用于图形验证码的获取，返回png格式的验证码图形的BASE64字符串，其中验证码为4位数字。<br>
-        该接口目前仅用于注册验证。<br>
+        用于图形验证码的获取，返回png格式的验证码图形的Base64字符串，其中验证码为4位数字。<br>
+        该接口用于邮箱验证、手机验证。<br>
       responses:
         '200':
           description: 获取成功
