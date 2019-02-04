@@ -65,7 +65,13 @@ paths:
                     example: 'XMatrixStudio'
                   class:
                     type: number
-                    description: 用户级别
+                    description: |
+                      用户级别<br>
+                      -1 - 封禁用户<br>
+                      0 - 普通用户<br>
+                      1 - 开发者<br>
+                      50 - 管理员<br>
+                      99 - 超级管理员<br>
                     example: 99
                   createTime:
                     type: string
@@ -81,23 +87,47 @@ paths:
                         example: 'http://violet-1252808268.cosgz.myqcloud.com/0.png'
                       bio:
                         type: string
-                        description: 个人签名
+                        description: |
+                          个人签名，最多128位<br>
                         example: 'Hello, world!'
+                      birthday:
+                        type: string
+                        description: 生日
+                        format: date-time
                       email:
                         type: string
                         description: 联系邮箱
                         format: email
+                      gender:
+                        type: number
+                        description: |
+                          性别<br>
+                          0 - 未知<br>
+                          1 - 男<br>
+                          2 - 女<br>
+                        enum:
+                        - 0
+                        - 1
+                        - 2
                       location:
                         type: string
-                        description: 地址
+                        description: |
+                          地址，最多64位<br>
                         example: 'Guangzhou, China'
                       nickname:
                         type: string
-                        description: 昵称
+                        description: |
+                          昵称，最多32位<br>
                         example: '未知矩阵'
+                      phone:
+                        type: string
+                        description: 联系电话
+                        format: phone
+                        example: '12345678901'
                       url:
                         type: string
-                        description: 个人主页
+                        description: |
+                          个人主页，最多128位<br>
                         format: url
                         example: 'https://oauth.xmatrix.studio/'
         '401':
@@ -119,32 +149,37 @@ paths:
       description: |
         需验证注册邮箱方可进行注册<br>
         该方法可多次请求，直到注册成功或验证状态过期，则验证状态将被删除<br>
-      parameters:
-      - name: name
-        in: query
-        description: |
-          用户唯一名称<br>
-          以字母开头，由字母、数字、下划线、减号组成，最多32位<br>
-          /^[a-zA-Z][a-zA-Z0-9_-]{0,31}$/<br>
+      requestBody:
         required: true
-        schema:
-          type: string
-          pattern: '^[a-zA-Z][a-zA-Z0-9_-]{0,31}$'
-      - name: password
-        in: query
-        description: |
-          用户密码的SHA512散列值<br>
-          密码限制为6-24位，不允许纯数字<br>
-        required: true
-        schema:
-          type: string
-      - name: nickname
-        in: query
-        description: |
-          用户昵称<br>
-          不限字符类型，最多32位<br>
-        schema:
-          type: string
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - name
+              - password
+              properties:
+                name:
+                  type: string
+                  description: |
+                    用户唯一名称<br>
+                    以字母开头，由字母、数字、下划线、减号组成，最多32位<br>
+                  pattern: '^[a-zA-Z][a-zA-Z0-9_-]{0,31}$'
+                  example: 'XMatrix'
+                password:
+                  type: string
+                  description: |
+                    用户密码的SHA512散列值<br>
+                    密码限制为6-24位，不允许纯数字<br>
+                  pattern: '^[a-fA-F0-9]{128}&'
+                  example: 'BA3253876AED6BC2...'
+                nickname:
+                  type: string
+                  description: |
+                    用户昵称<br>
+                    可中英文混合，最多32位<br>
+                  pattern: '^([a-zA-Z0-9_-]|\p{Script=Hani})+$'
+                  example: '未知矩阵'
       responses:
         '201':
           description: 注册成功
@@ -168,7 +203,111 @@ paths:
     patch:
       tags: [User]
       summary: 修改用户个人信息
-      deprecated: true
+      description: |
+        可用该方法修改密码以及个人信息<br>
+        如果两项共同使用，修改密码失败时将不会修改个人信息<br>
+      requestBody:
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                info:
+                  type: object
+                  properties:
+                    avatar:
+                      type: string
+                      description: 头像的Base64字符串
+                      example: 'WE1hdHJpeA=='
+                    bio:
+                      type: string
+                      description: |
+                        个人签名，最多128位<br>
+                      example: 'Hello, world!'
+                    birthday:
+                      type: string
+                      description: 生日
+                      format: date-time
+                    email:
+                      type: string
+                      description: 联系邮箱
+                      format: email
+                    gender:
+                      type: number
+                      description: |
+                        性别<br>
+                        0 - 未知<br>
+                        1 - 男<br>
+                        2 - 女<br>
+                      enum:
+                      - 0
+                      - 1
+                      - 2
+                    location:
+                      type: string
+                      description: |
+                        地址，最多64位<br>
+                      example: 'Guangzhou, China'
+                    nickname:
+                      type: string
+                      description: |
+                        昵称，最多32位<br>
+                      example: '未知矩阵'
+                    phone:
+                      type: string
+                      description: 联系电话
+                      format: phone
+                      example: '12345678901'
+                    url:
+                      type: string
+                      description: |
+                        个人主页，最多128位<br>
+                      format: url
+                      example: 'https://oauth.xmatrix.studio/'
+                secure:
+                  type: object
+                  required:
+                  - old_password
+                  - new_password
+                  properties:
+                    old_password:
+                      type: string
+                      description: 旧密码的SHA512散列值
+                      example: 'BA3253876AED6BC2...'
+                    new_password:
+                      type: string
+                      description: 新密码的SHA512散列值
+                      example: '7462482C87F9BAFC...'
+      responses:
+        '200':
+          description: 修改成功
+        '400':
+          description: 修改失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      error_password - 旧密码错误<br>
+                      invalid_info - 非法用户信息<br>
+                      invalid_secure - 非法密码散列值<br>
+                    example: 'error_password'
+        '401':
+          description: 修改失败，身份验证未通过
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_token - 未进行身份验证<br>
+                      timeout_token - 身份验证已过期<br>
+                    example: 'invalid_token'
 
   '/user/email':
     post:
@@ -178,31 +317,30 @@ paths:
         需图形验证放可发送邮箱验证邮件<br>
         该方法不可多次请求，1分钟内仅可发送1次，且每次请求后均删除图形验证状态<br>
         发送邮件是阻塞请求，即只有发送成功或失败该方法才作出响应<br>
-      parameters:
-      - name: operator
-        in: query
-        description: 邮箱验证操作的用途
+      requestBody:
         required: true
-        schema:
-          type: string
-          enum:
-          - register
-      - name: email
-        in: query
-        description: |
-          需要认证的邮箱，仅在用途为register才必选<br>
-          /^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/<br>
-        required: true
-        schema:
-          type: string
-          format: email
-          pattern: '^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$'
-      - name: vcode
-        in: query
-        description: 图形验证码
-        required: true
-        schema:
-          type: string
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - operator
+              - email
+              - vcode
+              properties:
+                operator:
+                  type: string
+                  description: 邮箱验证操作的用途
+                  enum:
+                  - register
+                email:
+                  type: string
+                  description: 需要认证的邮箱
+                  format: email
+                vcode:
+                  type: string
+                  description: 图形验证码
+                  example: '1234'
       responses:
         '201':
           description: 发送验证邮件成功
@@ -229,21 +367,25 @@ paths:
       summary: 认证邮箱
       description: |
         邮箱验证状态时限为5分钟<br>
-      parameters:
-      - name: operator
-        in: query
-        description: 邮箱验证操作的用途
+      requestBody:
         required: true
-        schema:
-          type: string
-          enum:
-          - register
-      - name: code
-        in: query
-        description: 邮箱验证码
-        required: true
-        schema:
-          type: string
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - operator
+              - code
+              properties:
+                operator:
+                  type: string
+                  description: 邮箱验证操作的用途
+                  enum:
+                  - register
+                code:
+                  type: string
+                  description: 邮箱验证码
+                  example: '123456'
       responses:
         '200':
           description: 验证成功
@@ -272,24 +414,27 @@ paths:
         使用用户名、登陆邮箱、登陆手机等唯一标识之一登陆<br>
         普通登陆身份验证有效时限为1天，且以上一次有效请求开始计时<br>
         自动登陆身份验证有效时限为15天<br>
-      parameters:
-      - name: user
-        in: query
-        description: 用户唯一标识，可以是用户名或邮箱或手机
+      requestBody:
         required: true
-        schema:
-          type: string
-      - name: password
-        in: query
-        description: 用户密码的SHA512散列值
-        required: true
-        schema:
-          type: string
-      - name: remember
-        in: query
-        description: 是否自动登陆
-        schema:
-          type: boolean
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - user
+              - password
+              properties:
+                user:
+                  type: string
+                  description: 用户唯一标识，可以是用户名或邮箱或手机
+                  example: 'XMatrix'
+                password:
+                  type: string
+                  description: 用户密码的SHA512散列值
+                  example: 'BA3253876AED6BC2...'
+                remember:
+                  type: boolean
+                  description: 是否自动登陆
       responses:
         '201':
           description: 登陆成功
