@@ -88,7 +88,7 @@ paths:
                       bio:
                         type: string
                         description: |
-                          个人签名，最多128位<br>
+                          个人简历，最多128位<br>
                         example: 'Hello, world!'
                       birthday:
                         type: string
@@ -147,7 +147,7 @@ paths:
       tags: [User]
       summary: 注册账号
       description: |
-        需验证注册邮箱方可进行注册<br>
+        需验证注册邮箱或注册手机方可进行注册<br>
         该方法可多次请求，直到注册成功或验证状态过期，则验证状态将被删除<br>
       requestBody:
         required: true
@@ -197,7 +197,7 @@ paths:
                       invalid_name - 非法用户名<br>
                       invalid_nickname - 非法昵称<br>
                       invalid_password - 非法密码散列值<br>
-                      not_exist_email - 不存在邮箱记录<br>
+                      not_exist_register_record - 不存在注册记录<br>
                       reserved_name - 用户名保留<br>
                     example: 'exist_name'
     patch:
@@ -222,7 +222,7 @@ paths:
                     bio:
                       type: string
                       description: |
-                        个人签名，最多128位<br>
+                        个人简历，最多128位<br>
                       example: 'Hello, world!'
                     birthday:
                       type: string
@@ -292,8 +292,18 @@ paths:
                     type: string
                     description: |
                       error_password - 旧密码错误<br>
-                      invalid_info - 非法用户信息<br>
-                      invalid_secure - 非法密码散列值<br>
+                      invalid_avatar - 非法头像Base64字符串<br>
+                      invalid_bio - 非法个人简介<br>
+                      invalid_birthday - 非法生日<br>
+                      invalid_email - 非法联系邮箱<br>
+                      invalid_gender - 非法性别<br>
+                      invalid_location - 非法地址<br>
+                      invalid_new_password - 非法新密码散列值<br>
+                      invalid_nickname - 非法昵称<br>
+                      invalid_old_password - 非法旧密码散列值<br>
+                      invalid_phone - 非法联系电话<br>
+                      invalid_url - 非法个人主页<br>
+                      same_password - 新旧密码相同<br>
                     example: 'error_password'
         '401':
           description: 修改失败，身份验证未通过
@@ -325,22 +335,24 @@ paths:
               type: object
               required:
               - operator
+              - captcha
               - email
-              - vcode
               properties:
                 operator:
                   type: string
                   description: 邮箱验证操作的用途
                   enum:
                   - register
-                email:
-                  type: string
-                  description: 需要认证的邮箱
-                  format: email
-                vcode:
+                  - reset
+                  - update
+                captcha:
                   type: string
                   description: 图形验证码
                   example: '1234'
+                email:
+                  type: string
+                  description: 需要验证的邮箱
+                  format: email
       responses:
         '201':
           description: 发送验证邮件成功
@@ -354,14 +366,35 @@ paths:
                   error:
                     type: string
                     description: |
+                      通用错误<br>
                       error_captcha - 图形验证码错误<br>
-                      exist_email - 邮箱已存在<br>
+                      invalid_captcha - 非法图形验证码<br>
                       invalid_email - 非法邮箱<br>
                       invalid_operator - 非法操作<br>
                       limit_time - 发送时间间隔限制<br>
                       not_exist_captcha - 不存在图形验证记录<br>
                       send_fail - 发送失败<br>
+                      timeout_captcha - 超时图形验证记录<br><br>
+                      操作符`register`错误<br>
+                      exist_user - 用户已存在<br><br>
+                      操作符`reset`错误<br>
+                      not_exist_user - 用户不存在<br><br>
+                      操作符`update`错误<br>
+                      same_email - 邮箱相同<br>
                     example: 'exist_email'
+        '401':
+          description: 发送验证邮件失败，身份验证未通过，用于`update`操作符
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_token - 未进行身份验证<br>
+                      timeout_token - 身份验证已过期<br>
+                    example: 'invalid_token'
     put:
       tags: [User]
       summary: 认证邮箱
@@ -382,10 +415,17 @@ paths:
                   description: 邮箱验证操作的用途
                   enum:
                   - register
+                  - reset
+                  - update
                 code:
                   type: string
                   description: 邮箱验证码
-                  example: '123456'
+                password:
+                  type: string
+                  description: 重置密码的SHA512散列值，用于`reset`操作符
+              example:
+                operator: 'register'
+                code: '123456'
       responses:
         '200':
           description: 验证成功
@@ -400,11 +440,168 @@ paths:
                     type: string
                     description: |
                       error_code - 验证码错误<br>
+                      error_operator - 操作错误<br>
                       invalid_code - 非法验证码<br>
                       invalid_operator - 非法操作<br>
                       not_exist_code - 不存在邮箱验证记录<br>
                       timeout_code - 验证码已过期<br>
                     example: 'error_code'
+        '401':
+          description: 验证失败，身份验证未通过，用于`update`操作符
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_token - 未进行身份验证<br>
+                      timeout_token - 身份验证已过期<br>
+                    example: 'invalid_token'
+
+  '/user/phone':
+    post:
+      tags: [User]
+      summary: 发送手机验证短信，验证码固定为123456
+      deprecated: true
+      description: |
+        需图形验证放可发送手机验证短信<br>
+        该方法不可多次请求，1分钟内仅可发送1次，且每次请求后均删除图形验证状态<br>
+        发送短信是阻塞请求，即只有发送成功或失败该方法才作出响应<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - operator
+              - captcha
+              - phone
+              properties:
+                operator:
+                  type: string
+                  description: 手机验证操作的用途
+                  enum:
+                  - register
+                  - reset
+                  - update
+                captcha:
+                  type: string
+                  description: 图形验证码
+                  example: '1234'
+                phone:
+                  type: string
+                  description: 需要验证的手机
+                  format: phone
+                  example: '12345678901'
+      responses:
+        '201':
+          description: 发送验证短信成功
+        '400':
+          description: 发送验证短信失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      通用错误<br>
+                      error_captcha - 图形验证码错误<br>
+                      invalid_captcha - 非法图形验证码<br>
+                      invalid_operator - 非法操作<br>
+                      invalid_phone - 非法手机号码<br>
+                      limit_time - 发送时间间隔限制<br>
+                      not_exist_captcha - 不存在图形验证记录<br>
+                      send_fail - 发送失败<br>
+                      timeout_captcha - 超时图形验证记录<br><br>
+                      操作符`register`错误<br>
+                      exist_user - 用户已存在<br><br>
+                      操作符`reset`错误<br>
+                      not_exist_user - 用户不存在<br><br>
+                      操作符`update`错误<br>
+                      same_phone - 手机号码相同<br>
+                    example: 'exist_email'
+        '401':
+          description: 发送验证短信失败，身份验证未通过，用于`update`操作符
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_token - 未进行身份验证<br>
+                      timeout_token - 身份验证已过期<br>
+                    example: 'invalid_token'
+    put:
+      tags: [User]
+      summary: 认证手机
+      description: |
+        手机验证状态时限为5分钟<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - operator
+              - code
+              properties:
+                operator:
+                  type: string
+                  description: 手机验证操作的用途
+                  enum:
+                  - register
+                  - reset
+                  - update
+                code:
+                  type: string
+                  description: 手机验证码
+                password:
+                  type: string
+                  description: 重置密码的SHA512散列值，用于`reset`操作符
+              example:
+                operator: 'register'
+                code: '123456'
+      responses:
+        '200':
+          description: 验证成功
+        '400':
+          description: 验证失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      error_code - 验证码错误<br>
+                      error_operator - 操作错误<br>
+                      invalid_code - 非法验证码<br>
+                      invalid_operator - 非法操作<br>
+                      not_exist_code - 不存在邮箱验证记录<br>
+                      timeout_code - 验证码已过期<br>
+                    example: 'error_code'
+        '401':
+          description: 验证失败，身份验证未通过，用于`update`操作符
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_token - 未进行身份验证<br>
+                      timeout_token - 身份验证已过期<br>
+                    example: 'invalid_token'
 
   '/user/session':
     post:
@@ -467,8 +664,8 @@ paths:
       tags: [Util]
       summary: 获取图形验证码
       description: |
-        用于图形验证码的获取，返回png格式的验证码图形的Base64字符串，其中验证码为4位数字。<br>
-        该接口用于邮箱验证、手机验证。<br>
+        用于图形验证码的获取，返回png格式的验证码图形的Base64字符串，其中验证码为4位数字<br>
+        该接口用于邮箱验证、手机验证，有效期为5分钟<br>
       responses:
         '200':
           description: 获取成功
