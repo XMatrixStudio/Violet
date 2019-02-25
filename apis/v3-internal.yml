@@ -3,7 +3,7 @@ openapi: 3.0.2
 info:
   version: '3.0.0-alpha'
   title: Violet User System Internal APIs
-  description: Violet用户授权系统内部API列表，RESTful-Like
+  description: Violet用户授权系统内部API列表
   termsOfService: 'https://xmatrix.studio/terms'
   contact:
     name: XMatrix Studio
@@ -20,14 +20,57 @@ servers:
   description: XMatrix OAuth Test APIs
 
 tags:
+# - name: Applications
+#   description: 与应用相关的接口，包括创建、修改、删除、授权等
+- name: Levels
+  description: 与用户权限相关的接口，包括权限设置、申请等
+# - name: Organizations
+#   description: 与组织相关的接口，包括创建、修改、删除等
 - name: User
-  description: 与用户相关的接口，包括注册、登陆、登出、数据、授权等
+  description: 与用户相关的接口，包括注册、登陆、登出等
 - name: Util
   description: 工具类接口，包括获取图形验证码等
 
 components:
   # schemas:
-  # responses:
+  responses:
+    401NotLoginError:
+      description: 身份验证未通过
+      content:
+        'application/json':
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                description: |
+                  invalid_token - 未进行身份验证<br>
+                  timeout_token - 身份验证已过期<br>
+                example: 'invalid_token'
+    403NotAdminError:
+      description: 权限不足
+      content:
+        'application/json':
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                description: |
+                  permission_deny - 权限不足<br>
+                example: 'permission_deny'
+    403BannedUserError:
+      description: 权限不足
+      content:
+        'application/json':
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                description: |
+                  ban_user - 封禁用户<br>
+                example: 'ban_user'
   # parameters:
   # examples:
   # requestBodies:
@@ -37,6 +80,166 @@ components:
   # callbacks:
 
 paths:
+  '/levels/users':
+    get:
+      deprecated: true
+      tags: [Levels]
+      summary: 获取申请修改等级的用户列表
+      description: |
+        分页获取申请记录，可用于获取自己的申请记录列表和所有用户的申请记录列表。<br>
+        仅在获取自己的申请记录时不需要管理员权限。<br>
+      parameters:
+      - name: page
+        in: query
+        required: true
+        description: 页数
+        schema:
+          type: number
+          minimum: 1
+      - name: limit
+        in: query
+        required: true
+        description: 每页资源数量
+        schema:
+          type: number
+          minimum: 1
+      - name: state
+        in: query
+        description: |
+          申请状态筛选<br>
+          open - 待审核<br>
+          all - 全部<br>
+        schema:
+          type: string
+          enum:
+          - 'open'
+          - 'all'
+          default: 'all'
+      - name: self
+        in: query
+        description: 是否获取自己的资源
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    type: object
+                    description: 分页获取信息
+                    properties:
+                      page:
+                        type: number
+                        description: 当前页
+                        example: 1
+                      limit:
+                        type: number
+                        description: 每页资源数量
+                        example: 5
+                      total:
+                        type: number
+                        description: 资源总数
+                        example: 1
+                  data:
+                    type: array
+                    description: 申请记录集合
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          description: 用户名
+                          example: 'XMatrix'
+                        old_level:
+                          type: number
+                          description: 原始等级
+                          example: 0
+                        level:
+                          type: number
+                          description: 申请等级
+                          example: 50
+                        reason:
+                          type: string
+                          description: 申请理由
+                          example: 'I am boss.'
+                        time:
+                          type: string
+                          description: 申请时间
+                          format: date-time
+                        state:
+                          type: number
+                          description: |
+                            申请状态<br>
+                            0 - 待审核<br>
+                            1 - 已通过<br>
+                            2 - 已拒绝<br>
+                            3 - 已关闭<br>
+                          example: 0
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403NotAdminError'
+    post:
+      tags: [Levels]
+      summary: 申请修改用户等级
+      description: |
+        当申请权限为99超级管理员时，如果不存在超级管理员，则自动提权；如果存在超级管理员，则禁止申请。<br>
+        当用户处于封禁状态时，仅可以申请封禁前的用户等级(原始等级=-1-封禁等级)，用于封禁申诉。<br>
+        如果用户已存在申请记录，将覆盖申请记录，不作提示。<br>
+        禁止申请的等级有：超级管理员(存在时，99)、封禁用户(负数)。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - level
+              - reason
+              properties:
+                level:
+                  type: number
+                  description: 需要申请的用户等级
+                  example: 99
+                reason:
+                  type: number
+                  description: |
+                    申请修改等级权限的理由，不超过256位<br>
+                  example: 'I am boss.'
+      responses:
+        '201':
+          description: 申请成功
+        '400':
+          description: 申请失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      ban_level - 禁止申请的用户等级<br>
+                      exist_open_request - 已存在开启状态的申请<br>
+                      invalid_level - 非法用户等级<br>
+                      invalid_reason - 非法申请理由<br>
+                      not_exist_level - 用户等级不存在<br>
+                      now_level - 申请等级为当前等级<br>
+                    example: 'now_level'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403BannedUserError'
+    put:
+      deprecated: true
+      tags: [Levels]
+      summary: 修改用户等级
+
   '/user':
     get:
       tags: [User]
@@ -63,14 +266,14 @@ paths:
                     type: string
                     description: 用户名
                     example: 'XMatrixStudio'
-                  class:
+                  level:
                     type: number
                     description: |
                       用户级别<br>
-                      -1 - 封禁用户<br>
-                      0 - 普通用户<br>
-                      1 - 开发者<br>
-                      50 - 管理员<br>
+                      < 0 - 封禁用户<br>
+                      = 0 - 普通用户<br>
+                      1 ~ 49 - 开发者<br>
+                      50 ~ 98 - 管理员<br>
                       99 - 超级管理员<br>
                     example: 99
                   createTime:
@@ -131,18 +334,7 @@ paths:
                         format: url
                         example: 'https://oauth.xmatrix.studio/'
         '401':
-          description: 获取失败，身份验证未通过
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      invalid_token - 未进行身份验证<br>
-                      timeout_token - 身份验证已过期<br>
-                    example: 'invalid_token'
+          $ref: '#/components/responses/401NotLoginError'
     post:
       tags: [User]
       summary: 注册账号
@@ -306,18 +498,9 @@ paths:
                       same_password - 新旧密码相同<br>
                     example: 'error_password'
         '401':
-          description: 修改失败，身份验证未通过
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      invalid_token - 未进行身份验证<br>
-                      timeout_token - 身份验证已过期<br>
-                    example: 'invalid_token'
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403BannedUserError'
 
   '/user/email':
     post:
@@ -327,6 +510,10 @@ paths:
         需图形验证放可发送邮箱验证邮件<br>
         该方法不可多次请求，1分钟内仅可发送1次，且每次请求后均删除图形验证状态<br>
         发送邮件是阻塞请求，即只有发送成功或失败该方法才作出响应<br>
+        用途包括`register`、`reset`、`update`，其中，<br>
+        `register`：注册，仅返回200、400错误；<br>
+        `reset`：重置密码，仅返回200、400错误；<br>
+        `update`：更新邮箱，仅返回200、400、401、403错误。<br>
       requestBody:
         required: true
         content:
@@ -383,23 +570,18 @@ paths:
                       same_email - 邮箱相同<br>
                     example: 'exist_email'
         '401':
-          description: 发送验证邮件失败，身份验证未通过，用于`update`操作符
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      invalid_token - 未进行身份验证<br>
-                      timeout_token - 身份验证已过期<br>
-                    example: 'invalid_token'
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403BannedUserError'
     put:
       tags: [User]
       summary: 认证邮箱
       description: |
         邮箱验证状态时限为5分钟<br>
+        用途包括`register`、`reset`、`update`，其中，<br>
+        `register`：注册，仅返回200、400错误；<br>
+        `reset`：重置密码，仅返回200、400错误；<br>
+        `update`：更新邮箱，仅返回200、400、401、403错误。<br>
       requestBody:
         required: true
         content:
@@ -447,18 +629,9 @@ paths:
                       timeout_code - 验证码已过期<br>
                     example: 'error_code'
         '401':
-          description: 验证失败，身份验证未通过，用于`update`操作符
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      invalid_token - 未进行身份验证<br>
-                      timeout_token - 身份验证已过期<br>
-                    example: 'invalid_token'
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403BannedUserError'
 
   '/user/phone':
     post:
@@ -469,6 +642,10 @@ paths:
         需图形验证放可发送手机验证短信<br>
         该方法不可多次请求，1分钟内仅可发送1次，且每次请求后均删除图形验证状态<br>
         发送短信是阻塞请求，即只有发送成功或失败该方法才作出响应<br>
+        用途包括`register`、`reset`、`update`，其中，<br>
+        `register`：注册，仅返回200、400错误；<br>
+        `reset`：重置密码，仅返回200、400错误；<br>
+        `update`：更新手机，仅返回200、400、401、403错误。<br>
       requestBody:
         required: true
         content:
@@ -526,23 +703,18 @@ paths:
                       same_phone - 手机号码相同<br>
                     example: 'exist_email'
         '401':
-          description: 发送验证短信失败，身份验证未通过，用于`update`操作符
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      invalid_token - 未进行身份验证<br>
-                      timeout_token - 身份验证已过期<br>
-                    example: 'invalid_token'
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403BannedUserError'
     put:
       tags: [User]
       summary: 认证手机
       description: |
         手机验证状态时限为5分钟<br>
+        用途包括`register`、`reset`、`update`，其中，<br>
+        `register`：注册，仅返回200、400错误；<br>
+        `reset`：重置密码，仅返回200、400错误；<br>
+        `update`：更新手机，仅返回200、400、401、403错误。<br>
       requestBody:
         required: true
         content:
@@ -590,18 +762,9 @@ paths:
                       timeout_code - 验证码已过期<br>
                     example: 'error_code'
         '401':
-          description: 验证失败，身份验证未通过，用于`update`操作符
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      invalid_token - 未进行身份验证<br>
-                      timeout_token - 身份验证已过期<br>
-                    example: 'invalid_token'
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403BannedUserError'
 
   '/user/session':
     post:
@@ -611,6 +774,7 @@ paths:
         使用用户名、登陆邮箱、登陆手机等唯一标识之一登陆<br>
         普通登陆身份验证有效时限为1天，且以上一次有效请求开始计时<br>
         自动登陆身份验证有效时限为15天<br>
+        如果登陆失败超过3次，将在半个小时内禁止登陆，该限制可通过重置密码解除<br>
       requestBody:
         required: true
         content:
@@ -650,6 +814,7 @@ paths:
                       invalid_name - 非法用户名<br>
                       invalid_password - 非法密码散列值<br>
                       invalid_user - 非法用户唯一标识<br>
+                      limit_error_count - 登陆错误次数上限<br>
                     example: 'error_user_or_password'
     delete:
       tags: [User]
