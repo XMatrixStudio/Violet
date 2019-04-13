@@ -149,19 +149,22 @@ paths:
         - name: scope
           in: query
           description: |
-            请求的的权限列表，使用 "-" 分割<br/>
+            请求的的权限列表，使用 "," 分割<br/>
             默认为basic<br/>
             权限列表：<br/>
               basic   -   用户ID与基本信息(名字、头像)[必须]<br/>
               info    -   用户个人个性信息(简介、邮箱、手机、个人主页、生日、性别、所在地)<br/>
               email   -   通过Violet向用户发送邮件通知(用户中心可以管理)
+            建议控制授权项的数量，只传入必要的接口名称，因为授权项越多，用户越可能拒绝进行任何授权。
           required: false
           schema:
             type: string
-        - name: redirect_uri
+        - name: redirect_url
           in: query
           description: |
-            回调地址，成功授权后回调时会原样带回
+            回调地址，成功授权后的回调地址，必须是应用回调域下的地址。注意需要将url进行URLEncode。
+            例：回调地址为https://xx.xmatrix.studio/api/auth，回调域必须为https://xx.xmatrix.studio
+            编码后为：https%3a%2f%2fxx.xmatrix.studio%2fapi%2fauth
           required: false
           schema:
             type: string
@@ -182,7 +185,8 @@ paths:
       responses:
         '301':
           description: |
-            用户授权成功，跳转到预先在violet留下的回调地址，认证成功后，再由网站服务器自行跳转
+            用户授权成功，跳转到请求中的回调地址，并附带code和state参数
+            例：https://xx.xmatrix.studio/api/auth?code=xxxx&state=xxxxx
           content:
             回调参数:
               schema:
@@ -197,11 +201,6 @@ paths:
                     type: string
                     description: |
                       client端的状态值，原样带回
-                    example: string
-                  redirect_uri:
-                    type: string
-                    description: |
-                      回调地址，原样带回
                     example: string
   /Verify/Token:
     post:
