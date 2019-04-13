@@ -128,7 +128,9 @@ paths:
         - name: response_type
           in: query
           description: |
-            授权类型，此值固定为"code"
+            授权类型
+            "code": 成功授权之后会通过get回调地址传递code和state
+            "code_post": 成功授权之后会通过post回调地址传递code和state
           required: true
           schema:
             type: string
@@ -201,6 +203,7 @@ paths:
                     type: string
                     description: |
                       client端的状态值，原样带回
+                      请务必严格按照流程检查用户与state参数状态的绑定。
                     example: string
   /Verify/Token:
     post:
