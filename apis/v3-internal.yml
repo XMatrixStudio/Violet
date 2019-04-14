@@ -22,10 +22,10 @@ servers:
   description: XMatrix OAuth Localhost APIs
 
 tags:
+- name: Administration
+  description: 与管理相关的接口，包括申请审核等
 - name: Applications
   description: 与应用相关的接口，包括创建、修改、删除、授权等
-- name: Levels
-  description: 与用户权限相关的接口，包括权限设置、申请等
 - name: Organizations
   description: 与组织相关的接口，包括创建、修改、删除等
 - name: Users
@@ -61,18 +61,6 @@ components:
                 description: |
                   permission_deny - 权限不足<br>
                 example: 'permission_deny'
-    403BannedUserError:
-      description: 权限不足
-      content:
-        'application/json':
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-                description: |
-                  ban_user - 封禁用户<br>
-                example: 'ban_user'
   # parameters:
   # examples:
   # requestBodies:
@@ -82,170 +70,13 @@ components:
   # callbacks:
 
 paths:
-  '/apps':
-    post:
-      tags: [Applications]
-      summary: 创建应用
-      description: |
-        只有组织所有人才可以创建属于组织的应用。<br>
-      requestBody:
-        required: true
-        content:
-          'application/json':
-            schema:
-              type: object
-              required:
-              - owner
-              - name
-              properties:
-                owner:
-                  type: string
-                  description: 应用的所有人，即组织或用户
-                  example: 'XMatrix'
-                name:
-                  type: string
-                  description: 应用名
-                  example: 'Violet'
-                description:
-                  type: string
-                  description: 应用描述
-                  example: 'An OAuth user system'
-      responses:
-        '201':
-          description: 创建成功
-        '400':
-          description: 创建失败
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      error_owner - 所有人错误<br>
-                      exist_name - 应用名已占用<br>
-                      invalid_description - 非法描述<br>
-                      invalid_name - 非法应用名<br>
-                      invalid_owner - 非法所有人<br>
-                      limit_app - 应用数量达到上限<br>
-        '401':
-          $ref: '#/components/responses/401NotLoginError'
-        '403':
-          $ref: '#/components/responses/403PermissionDenyError'
-
-  '/levels':
+  '/admin/requests':
     get:
-      tags: [Levels]
-      summary: 获取用户等级列表
+      tags: [Administration]
+      summary: 获取申请列表
       description: |
-        该接口不支持分页，因为等级上限为99；获取的用户等级中不包括封禁等级。<br>
-        封禁等级与原始等级遵循：-原始等级-1=封禁等级。<br>
-      responses:
-        '200':
-          description: 获取成功
-          content:
-            'application/json':
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    level:
-                      type: number
-                      description: 用户等级
-                    app:
-                      type: number
-                      description: |
-                        可创建的App的数量上限，-1为无穷
-                    org:
-                      type: number
-                      description: |
-                        可创建的组织的数量上限，-1为无穷
-                    admin:
-                      type: boolean
-                      description: 是否拥有管理员权限
-                  example:
-                  - level: 0
-                    app: 0
-                    org: 0
-                    admin: false
-                  - level: 99
-                    app: -1
-                    org: -1
-                    admin: true
-        '401':
-          $ref: '#/components/responses/401NotLoginError'
-    post:
-      tags: [Levels]
-      summary: 创建新的用户等级
-      description: |
-        权限要求：超级管理员。<br>
-        可创建级别为1~98的用户等级，若该级别已存在，则创建失败。<br>
-        级别为0的普通用户以及级别为99的超级管理员不得创建。<br>
-      requestBody:
-        required: true
-        content:
-          'application/json':
-            schema:
-              type: object
-              required:
-              - level
-              - app
-              - org
-              properties:
-                level:
-                  type: number
-                  description: 用户等级
-                  example: 2
-                app:
-                  type: number
-                  description: |
-                    可创建应用的数量上限，-1为无穷
-                  example: 10
-                org:
-                  type: number
-                  description: |
-                    可创建组织的数量上限，-1为无穷
-                  example: 5
-                auto_pass:
-                  type: boolean
-                  description: 是否免除审核
-                  default: false
-                request_access:
-                  type: boolean
-                  description: 是否允许申请
-                  default: true
-      responses:
-        '201':
-          description: 创建成功
-        '400':
-          description: 创建失败
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      exist_level - 等级已存在<br>
-                      invalid_app - 非法应用数量上限<br>
-                      invalid_level - 非法等级<br>
-                      invalid_org - 非法组织数量上限<br>
-                    example: 'exist_level'
-        '401':
-          $ref: '#/components/responses/401NotLoginError'
-        '403':
-          $ref: '#/components/responses/403PermissionDenyError'
-
-  '/levels/users':
-    get:
-      tags: [Levels]
-      summary: 获取申请修改等级的用户列表
-      description: |
-        分页获取申请记录，可用于获取自己的申请记录列表和所有用户的申请记录列表。<br>
-        仅在获取自己的申请记录时不需要管理员权限。<br>
+        权限要求：管理员以上。<br>
+        分页获取申请列表，可用于所有用户的申请记录列表。<br>
       parameters:
       - name: page
         in: query
@@ -261,6 +92,18 @@ paths:
         schema:
           type: number
           minimum: 1
+      - name: type
+        in: query
+        description: |
+          申请类型筛选<br>
+          0 - 开发者权限<br>
+          1 - 管理员权限<br>
+          10 - 用户应用上限<br>
+          11 - 用户组织上限<br>
+          20 - 组织应用上限<br>
+          该参数为空时获取所有类型申请<br>
+        schema:
+          type: number
       - name: state
         in: query
         description: |
@@ -268,16 +111,9 @@ paths:
           0 - 待审核<br>
           1 - 已通过<br>
           2 - 已拒绝<br>
-          3 - 已关闭<br>
           该参数为空时获取所有状态申请<br>
         schema:
           type: number
-      - name: self
-        in: query
-        description: 是否获取自己的资源
-        schema:
-          type: boolean
-          default: false
       responses:
         '200':
           description: 获取成功
@@ -312,17 +148,19 @@ paths:
                           type: string
                           description: 用户名
                           example: 'XMatrix'
-                        old_level:
+                        type:
                           type: number
-                          description: 原始等级
-                          example: 0
-                        level:
-                          type: number
-                          description: 申请等级
-                          example: 50
-                        reason:
+                          description: |
+                            申请类型<br>
+                            0 - 开发者权限<br>
+                            1 - 管理员权限<br>
+                            10 - 用户应用上限<br>
+                            11 - 用户组织上限<br>
+                            20 - 组织应用上限<br>
+                          example: 1
+                        remark:
                           type: string
-                          description: 申请理由
+                          description: 备注
                           example: 'I am boss.'
                         time:
                           type: string
@@ -335,7 +173,6 @@ paths:
                             0 - 待审核<br>
                             1 - 已通过<br>
                             2 - 已拒绝<br>
-                            3 - 已关闭<br>
                           example: 0
         '400':
           description: 获取失败
@@ -350,19 +187,19 @@ paths:
                       invalid_limit - 非法每页资源数<br>
                       invalid_page - 非法页码<br>
                       invalid_state - 非法状态<br>
+                      invalid_type - 非法类型<br>
                     example: 'invalid_state'
         '401':
           $ref: '#/components/responses/401NotLoginError'
         '403':
           $ref: '#/components/responses/403PermissionDenyError'
+
+  '/apps':
     post:
-      tags: [Levels]
-      summary: 申请修改用户等级
+      tags: [Applications]
+      summary: 新建应用
       description: |
-        当申请权限为99超级管理员时，如果不存在超级管理员，则自动提权；如果存在超级管理员，则禁止申请。<br>
-        当用户处于封禁状态时，仅可以申请封禁前的用户等级(原始等级=-1-封禁等级)，用于封禁申诉。<br>
-        如果用户已存在申请记录，将覆盖申请记录，不作提示。<br>
-        禁止申请的等级有：超级管理员(存在时，99)、封禁用户(负数)。<br>
+        权限要求：开发者以上。<br>
       requestBody:
         required: true
         content:
@@ -370,23 +207,50 @@ paths:
             schema:
               type: object
               required:
-              - level
-              - reason
+              - name
+              - description
+              - home_url
+              - callback_url
+              - type
+              - owner
               properties:
-                level:
-                  type: number
-                  description: 需要申请的用户等级
-                  example: 99
-                reason:
-                  type: number
+                name:
+                  type: string
                   description: |
-                    申请修改等级权限的理由，不超过256位<br>
-                  example: 'I am boss.'
+                    应用名<br>
+                    以字母开头，由字母、数字、下划线、减号组成，最多32位<br>
+                  pattern: '^[a-zA-Z][a-zA-Z0-9_-]{0,31}$'
+                  example: 'Violet'
+                description:
+                  type: string
+                  description: 应用简介
+                  example: 'A User OAuth2.0 System'
+                home_url:
+                  type: string
+                  description: 应用主页
+                  format: url
+                  example: 'http://example.com'
+                callback_url:
+                  type: string
+                  description: 应用回调域
+                  format: url
+                  example: 'http://example.com/callback'
+                type:
+                  type: number
+                  description: 应用分类
+                owner:
+                  type: string
+                  description: 应用所有人，组织名或用户名
+                  example: 'XMatrix'
+                avatar:
+                  type: string
+                  description: 应用图标
+                  example: 'WE1hdHJpeA=='
       responses:
         '201':
-          description: 申请成功
+          description: 新建成功
         '400':
-          description: 申请失败
+          description: 新建失败
           content:
             'application/json':
               schema:
@@ -395,45 +259,72 @@ paths:
                   error:
                     type: string
                     description: |
-                      ban_level - 禁止申请的用户等级<br>
-                      exist_open_request - 已存在开启状态的申请<br>
-                      invalid_level - 非法用户等级<br>
-                      invalid_reason - 非法申请理由<br>
-                      not_exist_level - 用户等级不存在<br>
-                      now_level - 申请等级为当前等级<br>
-                    example: 'now_level'
+                      exist_name - 应用已存在<br>
+                      invalid_avatar - 非法图标<br>
+                      invalid_callback_url - 非法回调域<br>
+                      invalid_description - 非法简介<br>
+                      invalid_home_url - 非法主页<br>
+                      invalid_name - 非法名称<br>
+                      invalid_owner - 非法所有人<br>
+                      invalid_type - 非法类型<br>
+                      limit_apps - 应用数量达到上限<br>
+                      not_exist_owner - 用户/组织不存在<br>
+                      reserved_name - 应用保留<br>
+                    example: 'exist_name'
         '401':
           $ref: '#/components/responses/401NotLoginError'
         '403':
-          $ref: '#/components/responses/403BannedUserError'
-    put:
-      deprecated: true
-      tags: [Levels]
-      summary: 修改用户等级
+          $ref: '#/components/responses/403PermissionDenyError'
 
   '/orgs':
     post:
       tags: [Organizations]
-      summary: 创建组织
+      summary: 新建组织
       description: |
+        权限要求：开发者以上。<br>
         组织名不得与用户名重复。<br>
-        组织的应用数量占用组织的创立者的应用数量上限中。<br>
       requestBody:
         required: true
         content:
           'application/json':
             schema:
               type: object
+              required:
+              - name
+              - description
+              - contact
+              - email
+              - phone
               properties:
                 name:
                   type: string
-                  description: 组织名，与用户名一样限制
+                  description: |
+                    组织唯一名称<br>
+                    以字母开头，由字母、数字、下划线、减号组成，最多32位<br>
+                  pattern: '^[a-zA-Z][a-zA-Z0-9_-]{0,31}$'
                   example: 'XMatrix'
+                description:
+                  type: string
+                  description: 组织简介
+                  example: 'Offical Team'
+                contact:
+                  type: string
+                  description: 联系人
+                  example: '未知先生'
+                email:
+                  type: string
+                  description: 联系邮箱
+                  format: email
+                phone:
+                  type: string
+                  description: 联系电话
+                  format: phone
+                  example: '12345678901'
       responses:
         '201':
-          description: 创建成功
+          description: 新建成功
         '400':
-          description: 申请失败
+          description: 新建失败
           content:
             'application/json':
               schema:
@@ -442,10 +333,14 @@ paths:
                   error:
                     type: string
                     description: |
-                      exist_name - 组织名已存在<br>
+                      exist_name - 用户/组织已存在<br>
+                      invalid_contact - 非法联系人<br>
+                      invalid_description - 非法简介<br>
+                      invalid_email - 非法联系邮箱<br>
+                      invalid_name - 非法名称<br>
+                      invalid_phone - 非法联系电话<br>
                       limit_orgs - 组织数量达到上限<br>
-                      invalid_name - 非法组织名<br>
-                      reserved_name - 组织名保留<br>
+                      reserved_name - 用户/组织保留<br>
                     example: 'exist_name'
         '401':
           $ref: '#/components/responses/401NotLoginError'
@@ -503,12 +398,12 @@ paths:
                   error:
                     type: string
                     description: |
-                      exist_name - 用户名已存在<br>
-                      invalid_name - 非法用户名<br>
+                      exist_name - 用户/组织已存在<br>
+                      invalid_name - 非法名称<br>
                       invalid_nickname - 非法昵称<br>
                       invalid_password - 非法密码散列值<br>
                       not_exist_register_record - 不存在注册记录<br>
-                      reserved_name - 用户名保留<br>
+                      reserved_name - 用户/组织保留<br>
                     example: 'exist_name'
     patch:
       tags: [Users]
@@ -617,16 +512,15 @@ paths:
                     example: 'error_password'
         '401':
           $ref: '#/components/responses/401NotLoginError'
-        '403':
-          $ref: '#/components/responses/403BannedUserError'
           
   '/users/{name}':
     get:
       tags: [Users]
       summary: 获取用户信息
       description: |
-        获取用户信息，如果为`me`则获取当前用户信息。<br>
-        仅当获取当前用户信息时，才可获取用户登陆邮箱和用户登陆手机。<br>
+        权限要求：游客、登陆用户(仅获取当前用户信息)。<br>
+        如果为`me`则获取当前用户信息。<br>
+        仅当获取当前用户信息时，才可获取用户登陆邮箱和用户登陆手机以及开发者联系信息。<br>
       parameters:
       - name: name
         in: path
@@ -661,9 +555,9 @@ paths:
                     description: |
                       用户级别<br>
                       < 0 - 封禁用户<br>
-                      = 0 - 普通用户<br>
-                      1 ~ 49 - 开发者<br>
-                      50 ~ 98 - 管理员<br>
+                      0 - 普通用户<br>
+                      1 - 开发者<br>
+                      50 - 管理员<br>
                       99 - 超级管理员<br>
                     example: 99
                   createTime:
@@ -680,8 +574,7 @@ paths:
                         example: 'http://violet-1252808268.cosgz.myqcloud.com/0.png'
                       bio:
                         type: string
-                        description: |
-                          个人简历，最多128位<br>
+                        description: 个人简历
                         example: 'Hello, world!'
                       birthday:
                         type: string
@@ -704,13 +597,11 @@ paths:
                         - 2
                       location:
                         type: string
-                        description: |
-                          地址，最多64位<br>
+                        description: 地址
                         example: 'Guangzhou, China'
                       nickname:
                         type: string
-                        description: |
-                          昵称，最多32位<br>
+                        description: 昵称
                         example: '未知矩阵'
                       phone:
                         type: string
@@ -719,10 +610,153 @@ paths:
                         example: '12345678901'
                       url:
                         type: string
-                        description: |
-                          个人主页，最多128位<br>
+                        description: 个人主页
                         format: url
                         example: 'https://oauth.xmatrix.studio/'
+                  dev:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        description: 联系名称
+                        example: '未知先生'
+                      email:
+                        type: string
+                        description: 联系邮箱
+                        format: email
+                      phone:
+                        type: string
+                        description: 联系电话
+                        format: phone
+                        example: '12345678901'
+                      app:
+                        type: object
+                        properties:
+                          limit:
+                            type: number
+                            description: 应用上限
+                            example: 10
+                          own:
+                            type: number
+                            description: 当前应用数量
+                            example: 3
+                      org:
+                        type: object
+                        properties:
+                          limit:
+                            type: number
+                            description: 组织上限
+                            example: 5
+                          own:
+                            type: number
+                            description: 当前组织数量
+                            example: 1
+                          join:
+                            type: number
+                            description: 加入组织数量
+        '400':
+          description: 获取失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      not_found - 用户不存在<br>
+                    example: 'not_found'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+
+  '/users/{name}/orgs':
+    get:
+      tags: [Users]
+      summary: 获取组织列表
+      description: |
+        权限要求：游客、登陆用户(仅指定`user`为`me`)。<br>
+      parameters:
+      - name: name
+        in: path
+        required: true
+        description: 用户
+        schema:
+          type: string
+      - name: page
+        in: query
+        description: 页数
+        schema:
+          type: number
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        description: 每页资源数量
+        schema:
+          type: number
+          default: 10
+          minimum: 1
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    type: object
+                    description: 分页获取信息
+                    properties:
+                      page:
+                        type: number
+                        description: 当前页
+                        example: 1
+                      limit:
+                        type: number
+                        description: 每页资源数量
+                        example: 5
+                      total:
+                        type: number
+                        description: 资源总数
+                        example: 1
+                  data:
+                    type: array
+                    description: 组织集合
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          description: 组织名
+                          example: 'XMatrix'
+                        description:
+                          type: string
+                          description: 组织简介
+                          example: 'Hello, world~'
+                        create_time:
+                          type: string
+                          description: 创建时间
+                          format: date-time
+                        avatar:
+                          type: string
+                          description: 组织头像URL
+                          format: url
+                          example: 'http://violet-1252808268.cosgz.myqcloud.com/0.png'
+        '400':
+          description: 获取失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_limit - 非法每页资源数<br>
+                      invalid_page - 非法页码<br>
+                      not_exist_user - 用户不存在<br>
+                    example: 'not_exist_user'
         '401':
           $ref: '#/components/responses/401NotLoginError'
 
@@ -795,8 +829,6 @@ paths:
                     example: 'exist_email'
         '401':
           $ref: '#/components/responses/401NotLoginError'
-        '403':
-          $ref: '#/components/responses/403BannedUserError'
     put:
       tags: [Users]
       summary: 认证邮箱
@@ -854,8 +886,160 @@ paths:
                     example: 'error_code'
         '401':
           $ref: '#/components/responses/401NotLoginError'
+
+  '/users/levels':
+    post:
+      tags: [Users]
+      summary: 申请更改用户等级
+      description: |
+        权限要求：普通用户(仅申请开发者)、开发者(仅申请管理员)。<br>
+        开发者的申请可自动被接受，管理员的申请需审核。<br>
+        超级管理员的申请需在不存在超级管理员的情况方可申请成功。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - level
+              - name
+              - email
+              - phone
+              properties:
+                level:
+                  type: number
+                  description: |
+                    申请的用户等级<br>
+                    1 - 开发者<br>
+                    50 - 管理员<br>
+                    99 - 超级管理员<br>
+                name:
+                  type: string
+                  description: 联系名称
+                email:
+                  type: string
+                  description: 联系邮箱
+                phone:
+                  type: string
+                  description: 联系电话
+                remark:
+                  type: string
+                  description: 备注
+              example:
+                level: 1
+                name: 'X先生'
+                email: 'a@xmatrix.studio'
+                phone: '12345678901'
+                remark: '想要成为开发者'
+      responses:
+        '201':
+          description: 申请成功
+        '400':
+          description: 申请失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_email - 非法邮箱<br>
+                      invalid_level - 非法等级<br>
+                      invalid_name - 非法联系名称<br>
+                      invalid_phone - 非法联系电话<br>
+                      invalid_remark - 非法备注<br>
+                      limit_level - 限制申请的等级<br>
+                      not_developer - 非开发者<br>
+                      not_normal_user - 非普通用户<br>
+                      repeat_request - 重复申请<br>
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
         '403':
-          $ref: '#/components/responses/403BannedUserError'
+          $ref: '#/components/responses/403PermissionDenyError'
+
+  '/users/levels/apps':
+    post:
+      tags: [Users]
+      summary: 申请提高用户应用上限
+      description: |
+        权限要求：开发者以上。<br>
+        申请如果被接受，应用上限将提高5。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - remark
+              properties:
+                remark:
+                  type: string
+                  description: |
+                    备注，最多256位<br>
+                  example: '用于XMatrix开发'
+      responses:
+        '201':
+          description: 申请成功
+        '400':
+          description: 申请失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_remark - 非法备注<br>
+                      repeat_request - 重复申请<br>
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403PermissionDenyError'
+
+  '/users/levels/orgs':
+    post:
+      tags: [Users]
+      summary: 申请提高用户组织上限
+      description: |
+        权限要求：开发者以上。<br>
+        申请如果被接受，组织上限将提高5。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - remark
+              properties:
+                remark:
+                  type: string
+                  description: |
+                    备注，最多256位<br>
+                  example: '用于XMatrix开发'
+      responses:
+        '201':
+          description: 申请成功
+        '400':
+          description: 申请失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_remark - 非法备注<br>
+                      repeat_request - 重复申请<br>
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403PermissionDenyError'
 
   '/users/phone':
     post:
@@ -928,8 +1112,6 @@ paths:
                     example: 'exist_email'
         '401':
           $ref: '#/components/responses/401NotLoginError'
-        '403':
-          $ref: '#/components/responses/403BannedUserError'
     put:
       tags: [Users]
       summary: 认证手机
@@ -987,8 +1169,6 @@ paths:
                     example: 'error_code'
         '401':
           $ref: '#/components/responses/401NotLoginError'
-        '403':
-          $ref: '#/components/responses/403BannedUserError'
 
   '/users/session':
     post:
