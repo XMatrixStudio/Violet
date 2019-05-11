@@ -200,6 +200,7 @@ paths:
       summary: 新建应用
       description: |
         权限要求：开发者以上。<br>
+        应用名是应用的唯一标识，不得重复。<br>
       requestBody:
         required: true
         content:
@@ -207,12 +208,12 @@ paths:
             schema:
               type: object
               required:
-              - name
+              - callbackHosts
               - description
-              - home_url
-              - callback_url
-              - type
+              - name
               - owner
+              - type
+              - url
               properties:
                 name:
                   type: string
@@ -221,23 +222,10 @@ paths:
                     以字母开头，由字母、数字、下划线、减号组成，最多32位<br>
                   pattern: '^[a-zA-Z][a-zA-Z0-9_-]{0,31}$'
                   example: 'Violet'
-                description:
+                displayName:
                   type: string
-                  description: 应用简介
-                  example: 'A User OAuth2.0 System'
-                home_url:
-                  type: string
-                  description: 应用主页
-                  format: url
-                  example: 'http://example.com'
-                callback_url:
-                  type: string
-                  description: 应用回调域
-                  format: url
-                  example: 'http://example.com/callback'
-                type:
-                  type: number
-                  description: 应用分类
+                  description: |
+                    应用显示名，最多32位<br>
                 owner:
                   type: string
                   description: 应用所有人，组织名或用户名
@@ -246,6 +234,27 @@ paths:
                   type: string
                   description: 应用图标
                   example: 'WE1hdHJpeA=='
+                callbackHosts:
+                  type: array
+                  description: 应用回调域
+                  items:
+                    type: string
+                    format: url
+                  example:
+                  - 'http://example.com/'
+                  - 'localhost:8080/'
+                description:
+                  type: string
+                  description: 应用简介
+                  example: 'A User OAuth2.0 System'
+                url:
+                  type: string
+                  description: 应用主页
+                  format: url
+                  example: 'http://example.com'
+                type:
+                  type: number
+                  description: 应用分类
       responses:
         '201':
           description: 新建成功
@@ -261,12 +270,13 @@ paths:
                     description: |
                       exist_name - 应用已存在<br>
                       invalid_avatar - 非法图标<br>
-                      invalid_callback_url - 非法回调域<br>
+                      invalid_callback_hosts - 非法回调域<br>
                       invalid_description - 非法简介<br>
-                      invalid_home_url - 非法主页<br>
+                      invalid_display_name - 非法显示名<br>
                       invalid_name - 非法名称<br>
                       invalid_owner - 非法所有人<br>
                       invalid_type - 非法类型<br>
+                      invalid_url - 非法主页<br>
                       limit_apps - 应用数量达到上限<br>
                       not_exist_owner - 用户/组织不存在<br>
                       reserved_name - 应用保留<br>
@@ -275,7 +285,204 @@ paths:
           $ref: '#/components/responses/401NotLoginError'
         '403':
           $ref: '#/components/responses/403PermissionDenyError'
-
+          
+  '/apps/{extId}':
+    parameters:
+    - name: extId
+      in: path
+      required: true
+      description: 扩展Id，即(应用名)或(+id)
+      schema:
+        type: string
+    get:
+      tags: [Applications]
+      summary: 获取应用信息
+      description: |
+        权限要求：游客、开发者以上(仅获取所有信息)。<br>
+        获取所有信息时不仅需要开发者以上的权限，且用户必须拥有管理应用的权限。<br>
+      parameters:
+      - name: all
+        in: query
+        required: false
+        description: 是否获取所有信息
+        allowEmptyValue: true
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: 应用Id
+                    example: '5cc050bc4e08ae19ec1b936b'
+                  name:
+                    type: string
+                    description: 应用名
+                    example: 'Violet'
+                  owner:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        description: 所有人Id
+                        example: '5cc029e0b578052958a2bfb2'
+                      name:
+                        type: string
+                        description: 应用所有人
+                        example: 'XMatrix'
+                      type:
+                        type: string
+                        description: 所有人类型，`user`或`org`
+                        enum:
+                        - 'org'
+                        - 'user'
+                  createTime:
+                    type: string
+                    format: date-time
+                    description: 应用创建时间
+                  key:
+                    type: string
+                    description: 密钥，获取所有消息时显示
+                    example: 'epja9y86qmkpcrwktmhq1y2n'
+                  callbackHosts:
+                    type: array
+                    items:
+                      type: string
+                      description: 回调域
+                      example: 'localhost'
+                  state:
+                    type: number
+                    description: |
+                      应用当前状态<br>
+                      0 - 运行中<br>
+                      1 - 已暂停<br>
+                  info:
+                    type: object
+                    properties:
+                      avatar:
+                        type: string
+                        format: url
+                        description: 应用Icon的Url
+                        example: 'http://violet-1252808268.cosgz.myqcloud.com/0.png'
+                      description:
+                        type: string
+                        description: 应用简介
+                        example: '紫罗兰用户授权系统'
+                      displayName:
+                        type: string
+                        description: 应用显示名
+                        example: '紫罗兰用户授权系统'
+                      url:
+                        type: string
+                        format: url
+                        description: 应用主页
+                        example: 'https://oauth.xmatrix.studio/'
+        '400':
+          description: 获取失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_ext_id - 非法扩展Id<br>
+                      invalid_name - 非法用户名<br>
+                      not_exist_app - 应用不存在<br>
+                      not_owner - 用户不具有应用权限<br>
+                    example: 'not_exist_app'
+      
+  '/apps/{id}':
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: 应用Id
+      schema:
+        type: string
+    patch:
+      tags: [Applications]
+      summary: 修改应用信息
+      description: |
+        权限要求：开发者以上。<br>
+        用户必须拥有管理应用的权限。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  description: 应用图标
+                  example: 'WE1hdHJpeA=='
+                callbackHosts:
+                  type: array
+                  description: 应用回调域
+                  items:
+                    type: string
+                    format: url
+                  example:
+                  - 'http://example.com/'
+                  - 'localhost:8080/'
+                description:
+                  type: string
+                  description: 应用简介
+                  example: 'A User OAuth2.0 System'
+                displayName:
+                  type: string
+                  description: |
+                    应用显示名，最多32位<br>
+                keyUpdate:
+                  type: boolean
+                  description: 更新密钥
+                state:
+                  type: number
+                  description: 应用状态
+                type:
+                  type: number
+                  description: 应用分类
+                url:
+                  type: string
+                  description: 应用主页
+                  format: url
+                  example: 'http://example.com'
+      responses:
+        '200':
+          description: 修改成功
+        '400':
+          description: 修改失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_avatar - 非法图标<br>
+                      invalid_callback_hosts - 非法回调域<br>
+                      invalid_description - 非法简介<br>
+                      invalid_display_name - 非法显示名<br>
+                      invalid_id - 非法Id<br>
+                      invalid_state - 非法状态<br>
+                      invalid_type - 非法类型<br>
+                      invalid_url - 非法主页<br>
+                      not_exist_app - 应用不存在<br>
+                      not_owner - 用户不具有应用权限<br>
+                    example: 'exist_name'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403PermissionDenyError'
+  
   '/orgs':
     post:
       tags: [Organizations]
@@ -290,10 +497,11 @@ paths:
             schema:
               type: object
               required:
-              - name
-              - description
               - contact
+              - description
+              - displayName
               - email
+              - name
               - phone
               properties:
                 name:
@@ -303,6 +511,14 @@ paths:
                     以字母开头，由字母、数字、下划线、减号组成，最多32位<br>
                   pattern: '^[a-zA-Z][a-zA-Z0-9_-]{0,31}$'
                   example: 'XMatrix'
+                displayName:
+                  type: string
+                  description: 组织显示名
+                  example: '未知矩阵'
+                avatar:
+                  type: string
+                  description: 组织头像Base64串
+                  example: 'WE1hdHJpeA=='
                 description:
                   type: string
                   description: 组织简介
@@ -310,7 +526,7 @@ paths:
                 contact:
                   type: string
                   description: 联系人
-                  example: '未知先生'
+                  example: '陈先生'
                 email:
                   type: string
                   description: 联系邮箱
@@ -334,8 +550,10 @@ paths:
                     type: string
                     description: |
                       exist_name - 用户/组织已存在<br>
+                      invalid_avatar - 非法头像<br>
                       invalid_contact - 非法联系人<br>
                       invalid_description - 非法简介<br>
+                      invalid_display_name - 非法显示名<br>
                       invalid_email - 非法联系邮箱<br>
                       invalid_name - 非法名称<br>
                       invalid_phone - 非法联系电话<br>
@@ -347,11 +565,593 @@ paths:
         '403':
           $ref: '#/components/responses/403PermissionDenyError'
 
+  '/orgs/{extId}':
+    parameters:
+    - name: extId
+      in: path
+      required: true
+      description: 扩展Id，即(组织名)或(+id)
+      schema:
+        type: string
+    get:
+      tags: [Organizations]
+      summary: 获取组织信息
+      description: |
+        权限要求：游客、开发者以上(仅获取所有信息)。<br>
+        获取所有信息时不仅需要开发者以上的权限，且用户是该组织的成员。<br>
+      parameters:
+      - name: all
+        in: query
+        description: 是否获取所有信息
+        allowEmptyValue: true
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: 组织Id
+                    example: '5cc029e0b578052958a2bfb2'
+                  name:
+                    type: string
+                    description: 组织名
+                    example: 'XMatrix'
+                  createTime:
+                    type: string
+                    format: date-time
+                    description: 创建时间
+                  dev:
+                    type: object
+                    properties:
+                      appLimit:
+                        type: number
+                        description: 应用上限，仅获取所有数据时显示
+                        example: 10
+                      appOwn:
+                        type: number
+                        description: 应用数
+                        example: 3
+                      memberLimit:
+                        type: number
+                        description: 成员上限，仅获取所有数据时显示
+                        example: 5
+                      memberOwn:
+                        type: number
+                        description: 成员数
+                        example: 2
+                  info:
+                    type: object
+                    properties:
+                      avatar:
+                        type: string
+                        description: 头像URL
+                        format: url
+                        example: 'http://violet-1252808268.cosgz.myqcloud.com/0.png'
+                      contact:
+                        type: string
+                        description: 联系人
+                        example: '陈先生'
+                      description:
+                        type: string
+                        description: 组织简介
+                        example: 'XMatrix Offical Team'
+                      displayName:
+                        type: string
+                        description: 组织显示名
+                        example: '未知矩阵'
+                      email:
+                        type: string
+                        description: 联系邮箱
+                        format: email
+                      location:
+                        type: string
+                        description: 地址
+                        example: 'Guangzhou, China'
+                      phone:
+                        type: string
+                        description: 联系电话
+                        format: phone
+                        example: '12345678901'
+                      url:
+                        type: string
+                        description: 组织主页
+                        format: url
+                        example: 'https://xmatrix.studio/'
+                  permission:
+                    type: object
+                    properties:
+                      app:
+                        type: number
+                        description: 添加删除应用的最低权限，仅获取所有数据时显示
+                        example: 1
+                      invite:
+                        type: number
+                        description: 邀请用户加入组织的最低权限，仅获取所有数据时显示
+                        example: 1
+                      member:
+                        type: number
+                        description: 管理用户的最低权限，仅获取所有数据时显示
+                        example: 1
+                  myRole:
+                    type: number
+                    description: |
+                      当前用户的角色
+                      0 - 普通成员
+                      1 - 管理员
+                      2 - 创建者
+                    example: 2
+        '400':
+          description: 获取失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_ext_id - 非法ExtId<br>
+                      not_exist_org - 组织不存在<br>
+                      not_member - 非该组织的成员<br>
+                    example: 'not_exist_org'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+
+  '/orgs/{id}/apps':
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: 组织Id
+      schema:
+        type: string
+    get:
+      tags: [Organizations]
+      summary: 获取应用列表
+      description: |
+        权限要求：游客。<br>
+        本接口获取指定组织所属应用的基本信息，如要获取个人的应用基本信息需使用接口`GET /users/{name}/apps`。<br>
+        如要获取应用的全部信息需使用接口`GET /apps/{name}`。<br>
+      parameters:
+      - name: page
+        in: query
+        description: 当前资源页码
+        schema:
+          type: number
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        description: 每页资源数量
+        schema:
+          type: number
+          default: 10
+          minimum: 1
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    type: object
+                    description: 分页获取信息
+                    properties:
+                      page:
+                        type: number
+                        description: 当前资源页码
+                        example: 1
+                      limit:
+                        type: number
+                        description: 每页资源数量
+                        example: 5
+                      total:
+                        type: number
+                        description: 资源总数
+                        example: 1
+                  data:
+                    type: array
+                    description: 应用集合
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: 应用Id
+                          example: '5cc050bc4e08ae19ec1b936b'
+                        name:
+                          type: string
+                          description: 应用名
+                          example: 'Violet'
+                        displayName:
+                          type: string
+                          description: 应用显示名
+                          example: '紫罗兰用户授权系统'
+                        state:
+                          type: number
+                          description: |
+                            应用当前状态<br>
+                            0 - 运行中<br>
+                            1 - 已暂停<br>
+                        avatar:
+                          type: string
+                          format: url
+                          description: 应用Icon的Url
+                          example: 'http://violet-1252808268.cosgz.myqcloud.com/0.png'
+                        description:
+                          type: string
+                          description: 应用简介
+                          example: '紫罗兰用户授权系统'
+        '400':
+          description: 获取失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_id - 非法组织Id<br>
+                      not_exist_org - 组织不存在<br>
+                    example: 'not_exist_org'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+
+  '/orgs/{id}/members':
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: 组织Id
+      schema:
+        type: string
+    get:
+      tags: [Organizations]
+      summary: 获取成员列表
+      description: |
+        权限要求：游客。<br>
+      parameters:
+      - name: page
+        in: query
+        description: 当前资源页码
+        schema:
+          type: number
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        description: 每页资源数量
+        schema:
+          type: number
+          default: 10
+          minimum: 1
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    type: object
+                    description: 分页获取信息
+                    properties:
+                      page:
+                        type: number
+                        description: 当前资源页码
+                        example: 1
+                      limit:
+                        type: number
+                        description: 每页资源数量
+                        example: 5
+                      total:
+                        type: number
+                        description: 资源总数
+                        example: 1
+                  data:
+                    type: array
+                    description: 成员集合
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: 用户Id
+                          example: '5cc050bc4e08ae19ec1b936b'
+                        name:
+                          type: string
+                          description: 用户名
+                          example: 'TestUser'
+                        nickname:
+                          type: string
+                          description: 昵称
+                          example: '测试用户'
+                        avatar:
+                          type: string
+                          format: url
+                          description: 头像Url
+                          example: 'http://violet-1252808268.cosgz.myqcloud.com/0.png'
+                        email:
+                          type: string
+                          format: email
+                          description: 联系邮箱
+                        phone:
+                          type: string
+                          description: 联系电话
+                          example: '15712345678'
+                        role:
+                          type: number
+                          description: |
+                            用户在组织中的等级<br>
+                            0 - 普通成员<br>
+                            1 - 管理员<br>
+                            2 - 创建者<br>
+                          example: 2
+        '400':
+          description: 获取失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      not_exist_org - 组织不存在<br>
+                    example: 'not_exist_org'
+    post:
+      tags: [Organizations]
+      summary: 添加成员
+      description: |
+        权限要求：开发者以上，且为该组织成员。<br>
+        该接口需当前用户拥有该组织成员邀请的权限。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - userId
+              properties:
+                userId:
+                  type: string
+                  description: 用户Id
+                  example: '5cc029e0b578052958a2bfb2'
+      responses:
+        '201':
+          description: 添加成功
+        '400':
+          description: 添加失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      already_member - 已是该组织成员<br>
+                      invalid_id - 非法组织Id<br>
+                      invalid_user_id - 非法用户Id<br>
+                      need_invite_permission - 未拥有该组织邀请权限<br>
+                      not_exist_org - 组织不存在<br>
+                      not_exist_user - 用户不存在<br>
+                    example: 'already_member'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403PermissionDenyError'
+    put:
+      tags: [Organizations]
+      summary: 修改成员等级
+      description: |
+        权限要求：开发者以上，且为该组织成员。<br>
+        该接口需当前用户拥有该组织成员管理的权限。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - userId
+              - role
+              properties:
+                userId:
+                  type: string
+                  description: 用户Id
+                  example: '5cc029e0b578052958a2bfb2'
+                role:
+                  type: number
+                  description: |
+                    用户等级<br>
+                    0 - 普通成员<br>
+                    1 - 管理员<br>
+                  example: 1
+      responses:
+        '200':
+          description: 修改成功
+        '400':
+          description: 修改失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_id - 非法组织Id<br>
+                      invalid_role - 非法等级<br>
+                      invalid_user_id - 非法用户Id<br>
+                      need_member_permission - 未拥有该组织成员管理权限<br>
+                      not_exist_org - 组织不存在<br>
+                      not_exist_user - 用户不存在<br>
+                      not_member - 用户非该组织成员<br>
+                    example: 'not_member'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403PermissionDenyError'
+          
+  '/orgs/{id}/members/{userId}':
+    parameters:
+    - name: id
+      in: path
+      required: true
+      description: 组织Id
+      schema:
+        type: string
+    - name: userId
+      in: path
+      required: true
+      description: 用户Id
+      schema:
+        type: string
+    delete:
+      tags: [Organizations]
+      summary: 移除成员
+      description: |
+        权限要求：开发者以上，且为该组织成员。<br>
+        该接口需当前用户拥有该组织成员管理的权限。<br>
+      responses:
+        '204':
+          description: 移除成功
+        '400':
+          description: 移除失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_id - 非法组织Id<br>
+                      invalid_user_id - 非法用户Id<br>
+                      need_member_permission - 未拥有该组织成员管理权限<br>
+                      not_exist_org - 组织不存在<br>
+                      not_exist_user - 用户不存在<br>
+                      not_member - 用户非该组织成员<br>
+                    example: 'not_member'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403PermissionDenyError'
+
   '/users':
+    get:
+      tags: [Users]
+      summary: 获取用户列表
+      description: |
+        权限要求：登陆用户。<br>
+        通过用户名进行搜索。<br>
+      parameters:
+      - name: name
+        in: query
+        required: true
+        description: 用户名
+        schema:
+          type: string
+      - name: page
+        in: query
+        description: 当前资源页码
+        schema:
+          type: number
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        description: 每页资源数量
+        schema:
+          type: number
+          default: 10
+          minimum: 1
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    type: object
+                    description: 分页获取信息
+                    properties:
+                      page:
+                        type: number
+                        description: 当前资源页码
+                        example: 1
+                      limit:
+                        type: number
+                        description: 每页资源数量
+                        example: 5
+                      total:
+                        type: number
+                        description: 资源总数
+                        example: 1
+                  data:
+                    type: array
+                    description: 用户集合
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: 用户Id
+                          example: '5cc050bc4e08ae19ec1b936b'
+                        name:
+                          type: string
+                          description: 用户名
+                          example: 'TestUser'
+                        nickname:
+                          type: string
+                          description: 昵称
+                          example: '测试用户'
+                        avatar:
+                          type: string
+                          format: url
+                          description: 头像Url
+                          example: 'http://violet-1252808268.cosgz.myqcloud.com/0.png'
+                        email:
+                          type: string
+                          format: email
+                          description: 联系邮箱
+                        phone:
+                          type: string
+                          description: 联系电话
+                          example: '15712345678'
+        '400':
+          description: 获取失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_name - 非法用户名<br>
+                    example: 'invalid_name'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
     post:
       tags: [Users]
       summary: 注册账号
       description: |
+        权限要求：游客。<br>
         需验证注册邮箱或注册手机方可进行注册<br>
         该方法可多次请求，直到注册成功或验证状态过期，则验证状态将被删除<br>
       requestBody:
@@ -409,8 +1209,9 @@ paths:
       tags: [Users]
       summary: 修改用户个人信息
       description: |
-        可用该方法修改密码以及个人信息<br>
-        如果两项共同使用，修改密码失败时将不会修改个人信息<br>
+        权限要求：登陆用户。<br>
+        可用该接口修改密码以及个人信息。<br>
+        优先修改密码，然后再修改个人信息。如果两项共同使用，修改密码失败时将不会修改个人信息。<br>
       requestBody:
         content:
           'application/json':
@@ -472,17 +1273,17 @@ paths:
                 secure:
                   type: object
                   required:
-                  - old_password
-                  - new_password
+                  - newPassword
+                  - oldPassword
                   properties:
-                    old_password:
-                      type: string
-                      description: 旧密码的SHA512散列值
-                      example: 'BA3253876AED6BC2...'
-                    new_password:
+                    newPassword:
                       type: string
                       description: 新密码的SHA512散列值
                       example: '7462482C87F9BAFC...'
+                    oldPassword:
+                      type: string
+                      description: 旧密码的SHA512散列值
+                      example: 'BA3253876AED6BC2...'
       responses:
         '200':
           description: 修改成功
@@ -512,23 +1313,28 @@ paths:
                     example: 'error_password'
         '401':
           $ref: '#/components/responses/401NotLoginError'
-          
-  '/users/{name}':
+
+  '/users/auths':
     get:
       tags: [Users]
-      summary: 获取用户信息
+      summary: 获取授权列表
       description: |
-        权限要求：游客、登陆用户(仅获取当前用户信息)。<br>
-        如果为`me`则获取当前用户信息。<br>
-        仅当获取当前用户信息时，才可获取用户登陆邮箱和用户登陆手机以及开发者联系信息。<br>
+        权限要求：登陆用户。<br>
       parameters:
-      - name: name
-        in: path
-        required: true
-        description: 用户名
+      - name: page
+        in: query
+        description: 当前资源页码
         schema:
-          type: string
-          example: 'me'
+          type: number
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        description: 每页资源数量
+        schema:
+          type: number
+          default: 10
+          minimum: 1
       responses:
         '200':
           description: 获取成功
@@ -537,6 +1343,770 @@ paths:
               schema:
                 type: object
                 properties:
+                  pagination:
+                    type: object
+                    description: 分页获取信息
+                    properties:
+                      page:
+                        type: number
+                        description: 当前资源页码
+                        example: 1
+                      limit:
+                        type: number
+                        description: 每页资源数量
+                        example: 5
+                      total:
+                        type: number
+                        description: 资源总数
+                        example: 1
+                  data:
+                    type: array
+                    description: 授权集合
+                    items:
+                      type: object
+                      properties:
+                        appId:
+                          type: string
+                          description: 应用Id
+                          example: '5cc050bc4e08ae19ec1b936b'
+                        appName:
+                          type: string
+                          description: 应用名
+                          example: 'Violet'
+                        appAvatar:
+                          type: string
+                          format: url
+                          description: 应用头像Url
+                          example: 'http://violet-1252808268.cosgz.myqcloud.com/0.png'
+                        appDisplayName:
+                          type: string
+                          description: 应用显示名
+                          example: '紫罗兰'
+                        duration:
+                          type: number
+                          description: 授权周期，单位为天
+                        scope:
+                          type: array
+                          items:
+                            type: string
+                          example:
+                          - base
+                        time:
+                          type: string
+                          format: date-time
+                          description: 授权时间
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+    post:
+      tags: [Users]
+      summary: 添加授权
+      description: |
+        权限要求：登陆用户。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - appId
+              - duration
+              - scope
+              properties:
+                appId:
+                  type: string
+                  description: 应用ID
+                  example: 'Violet'
+                duration:
+                  type: number
+                  description: |
+                    授权时长，以天数为单位，为0时表示单次授权<br>
+                    仅允许以下时长：0、1、7、15、30、90<br>
+                  example: 15
+                scope:
+                  type: array
+                  description: |
+                    请求的的权限列表<br>
+                    base - 用户ID与基本信息(名字、头像)[必须]<br>
+                    info - 用户个人个性信息(简介、邮箱、手机、主页、生日、性别、地址等)<br>
+                    email - 通过Violet向用户发送邮件通知<br>
+                  items:
+                    type: string
+                    enum:
+                    - base
+                    - info
+                    - email
+      responses:
+        '201':
+          description: 添加成功
+        '400':
+          description: 添加失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_app_id - 非法应用ID<br>
+                      invalid_duration - 非法时长<br>
+                      invalid_scope - 非法授权权限<br>
+                      not_exist_app - 应用不存在<br>
+                    example: 'not_exist_app'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+
+  '/users/auths/{appId}':
+    parameters:
+    - name: appId
+      in: path
+      required: true
+      description: 应用Id
+      schema:
+        type: string
+    get:
+      tags: [Users]
+      summary: 获取授权
+      description: |
+        权限要求：登陆用户。<br>
+      parameters:
+      - name: redirectUrl
+        in: query
+        description: 回调地址
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    description: |
+                      授权Code，有效期10分钟
+                    example: 'ABCD'
+                  duration:
+                    type: number
+                    description: 授权周期，单位为天
+                  scope:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                    - base
+                  time:
+                    type: string
+                    format: date-time
+                    description: 授权时间
+        '400':
+          description: 获取失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      error_redirect_url - 回调地址不符合回调域<br>
+                      invalid_app_id - 非法应用ID<br>
+                      not_exist_app - 应用不存在<br>
+                      not_exist_auth - 授权不存在<br>
+                    example: 'not_exist_app'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+    delete:
+      tags: [Users]
+      summary: 删除授权
+      description: |
+        权限要求：登陆用户。<br>
+        即使没有授权也会提示删除成功。<br>
+      responses:
+        '204':
+          description: 删除成功
+
+  '/users/dev':
+    put:
+      tags: [Users]
+      summary: 修改开发者个人信息
+      description: |
+        权限要求：开发者以上。<br>
+        修改开发者登记的个人姓名、联系方式。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - name
+              - email
+              - phone
+              properties:
+                name:
+                  type: string
+                  description: 联系名称
+                email:
+                  type: string
+                  description: 联系邮箱
+                phone:
+                  type: string
+                  description: 联系电话
+      responses:
+        '201':
+          description: 申请成功
+        '400':
+          description: 申请失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_email - 非法邮箱<br>
+                      invalid_name - 非法联系名称<br>
+                      invalid_phone - 非法联系电话<br>
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403PermissionDenyError'
+
+  '/users/email':
+    post:
+      tags: [Users]
+      summary: 发送邮箱验证邮件
+      description: |
+        权限要求：游客(仅register、reset)、登陆用户(仅update)。<br>
+        需图形验证放可发送邮箱验证邮件<br>
+        该方法不可多次请求，1分钟内仅可发送1次，且每次请求后均删除图形验证状态<br>
+        发送邮件是阻塞请求，即只有发送成功或失败该方法才作出响应<br>
+        用途包括`register`、`reset`、`update`，其中，<br>
+        `register`：注册；<br>
+        `reset`：重置密码；<br>
+        `update`：更新邮箱。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - operator
+              - captcha
+              - email
+              properties:
+                operator:
+                  type: string
+                  description: 邮箱验证操作的用途
+                  enum:
+                  - register
+                  - reset
+                  - update
+                captcha:
+                  type: string
+                  description: 图形验证码
+                  example: '1234'
+                email:
+                  type: string
+                  description: 需要验证的邮箱
+                  format: email
+      responses:
+        '201':
+          description: 发送验证邮件成功
+        '400':
+          description: 发送验证邮件失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      通用错误<br>
+                      error_captcha - 图形验证码错误<br>
+                      invalid_captcha - 非法图形验证码<br>
+                      invalid_email - 非法邮箱<br>
+                      invalid_operator - 非法操作<br>
+                      limit_time - 发送时间间隔限制<br>
+                      send_fail - 发送失败<br>
+                      timeout_captcha - 图形验证码已过期或不存在<br><br>
+                      操作符`register`错误<br>
+                      exist_user - 用户已存在<br><br>
+                      操作符`reset`错误<br>
+                      not_exist_user - 用户不存在<br><br>
+                      操作符`update`错误<br>
+                      same_email - 邮箱相同<br>
+                    example: 'exist_user'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+    put:
+      tags: [Users]
+      summary: 认证邮箱
+      description: |
+        权限要求：游客(仅register、reset)、登陆用户(仅update)。<br>
+        邮箱验证状态时限为10分钟<br>
+        用途包括`register`、`reset`、`update`，其中，<br>
+        `register`：注册；<br>
+        `reset`：重置密码；<br>
+        `update`：更新邮箱，也需要输入密码用于验证。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - operator
+              - code
+              properties:
+                operator:
+                  type: string
+                  description: 邮箱验证操作的用途
+                  enum:
+                  - register
+                  - reset
+                  - update
+                code:
+                  type: string
+                  description: 邮箱验证码
+                password:
+                  type: string
+                  description: 密码的SHA512散列值，用于`reset`和`update`操作符
+              example:
+                operator: 'register'
+                code: '123456'
+      responses:
+        '200':
+          description: 验证成功
+        '400':
+          description: 验证失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      error_code - 验证码错误<br>
+                      error_operator - 操作错误<br>
+                      error_password - 密码错误<br>
+                      invalid_code - 非法验证码<br>
+                      invalid_operator - 非法操作<br>
+                      timeout_code - 验证码已过期或记录不存在<br>
+                    example: 'error_code'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+
+  '/users/phone':
+    post:
+      tags: [Users]
+      summary: 发送手机验证短信，验证码固定为123456
+      description: |
+        权限要求：游客(仅register、reset)、登陆用户(仅update)。<br>
+        需图形验证放可发送手机验证短信<br>
+        该方法不可多次请求，1分钟内仅可发送1次，且每次请求后均删除图形验证状态<br>
+        发送短信是阻塞请求，即只有发送成功或失败该方法才作出响应<br>
+        用途包括`register`、`reset`、`update`，其中，<br>
+        `register`：注册；<br>
+        `reset`：重置密码；<br>
+        `update`：更新手机。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - operator
+              - captcha
+              - phone
+              properties:
+                operator:
+                  type: string
+                  description: 手机验证操作的用途
+                  enum:
+                  - register
+                  - reset
+                  - update
+                captcha:
+                  type: string
+                  description: 图形验证码
+                  example: '1234'
+                phone:
+                  type: string
+                  description: 需要验证的手机
+                  format: phone
+                  example: '12345678901'
+      responses:
+        '201':
+          description: 发送验证短信成功
+        '400':
+          description: 发送验证短信失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      通用错误<br>
+                      error_captcha - 图形验证码错误<br>
+                      invalid_captcha - 非法图形验证码<br>
+                      invalid_operator - 非法操作<br>
+                      invalid_phone - 非法手机号码<br>
+                      limit_time - 发送时间间隔限制<br>
+                      send_fail - 发送失败<br>
+                      timeout_captcha - 图形验证码已过期或不存在<br><br>
+                      操作符`register`错误<br>
+                      exist_user - 用户已存在<br><br>
+                      操作符`reset`错误<br>
+                      not_exist_user - 用户不存在<br><br>
+                      操作符`update`错误<br>
+                      same_phone - 手机号码相同<br>
+                    example: 'exist_user'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+    put:
+      tags: [Users]
+      summary: 认证手机
+      description: |
+        权限要求：游客(仅register、reset)、登陆用户(仅update)。<br>
+        手机验证状态时限为10分钟<br>
+        用途包括`register`、`reset`、`update`，其中，<br>
+        `register`：注册；<br>
+        `reset`：重置密码；<br>
+        `update`：更新手机，也需要输入密码用于验证。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - operator
+              - code
+              properties:
+                operator:
+                  type: string
+                  description: 手机验证操作的用途
+                  enum:
+                  - register
+                  - reset
+                  - update
+                code:
+                  type: string
+                  description: 手机验证码
+                password:
+                  type: string
+                  description: 重置密码的SHA512散列值，用于`reset`和`update`操作符
+              example:
+                operator: 'register'
+                code: '123456'
+      responses:
+        '200':
+          description: 验证成功
+        '400':
+          description: 验证失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      error_code - 验证码错误<br>
+                      error_operator - 操作错误<br>
+                      invalid_code - 非法验证码<br>
+                      invalid_operator - 非法操作<br>
+                      timeout_code - 验证码已过期或不存在<br>
+                    example: 'error_code'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+
+  '/users/requests':
+    get:
+      tags: [Users]
+      summary: 获取待审核的申请列表
+      description: |
+        权限要求：登陆用户。<br>
+        本接口仅返回待审核的申请列表，因此本接口不支持分页。<br>
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: number
+                      description: |
+                        申请类型<br>
+                        0 - 开发者权限<br>
+                        1 - 管理员权限<br>
+                        10 - 用户应用上限<br>
+                        11 - 用户组织上限<br>
+                        20 - 组织应用上限<br>
+                      example: 1
+                    remark:
+                      type: string
+                      description: 备注
+                      example: 'I am boss.'
+                    time:
+                      type: string
+                      description: 申请时间
+                      format: date-time
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+
+  '/users/requests/apps':
+    post:
+      tags: [Users]
+      summary: 申请提高用户应用上限
+      description: |
+        权限要求：开发者以上。<br>
+        申请如果被接受，应用上限将提高5。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - remark
+              properties:
+                remark:
+                  type: string
+                  description: |
+                    备注，最多256位<br>
+                  example: '用于XMatrix开发'
+      responses:
+        '201':
+          description: 申请成功
+        '400':
+          description: 申请失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_remark - 非法备注<br>
+                      repeat_request - 重复申请<br>
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403PermissionDenyError'
+
+  '/users/requests/levels':
+    post:
+      tags: [Users]
+      summary: 申请更改用户等级
+      description: |
+        权限要求：普通用户(仅申请开发者)、开发者(仅申请管理员和超级管理员)。<br>
+        开发者的申请可自动被接受，管理员的申请需审核。<br>
+        超级管理员的申请需在不存在超级管理员的情况方可申请成功。<br>
+        申请管理员和超级管理员无需填写个人信息，在其申请成为开发者时已有记录。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - level
+              properties:
+                level:
+                  type: number
+                  description: |
+                    申请的用户等级<br>
+                    1 - 开发者<br>
+                    50 - 管理员<br>
+                    99 - 超级管理员<br>
+                name:
+                  type: string
+                  description: 联系名称
+                email:
+                  type: string
+                  description: 联系邮箱
+                phone:
+                  type: string
+                  description: 联系电话
+                remark:
+                  type: string
+                  description: 备注
+              example:
+                level: 1
+                name: 'X先生'
+                email: 'a@xmatrix.studio'
+                phone: '12345678901'
+                remark: '想要成为开发者'
+      responses:
+        '201':
+          description: 申请成功
+        '400':
+          description: 申请失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_email - 非法邮箱<br>
+                      invalid_level - 非法等级<br>
+                      invalid_name - 非法联系名称<br>
+                      invalid_phone - 非法联系电话<br>
+                      invalid_remark - 非法备注<br>
+                      limit_level - 限制申请的等级<br>
+                      repeat_request - 重复申请<br>
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403PermissionDenyError'
+
+  '/users/requests/orgs':
+    post:
+      tags: [Users]
+      summary: 申请提高用户组织上限
+      description: |
+        权限要求：开发者以上。<br>
+        申请如果被接受，组织上限将提高5。<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - remark
+              properties:
+                remark:
+                  type: string
+                  description: |
+                    备注，最多256位<br>
+                  example: '用于XMatrix开发'
+      responses:
+        '201':
+          description: 申请成功
+        '400':
+          description: 申请失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_remark - 非法备注<br>
+                      repeat_request - 重复申请<br>
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+        '403':
+          $ref: '#/components/responses/403PermissionDenyError'
+
+  '/users/session':
+    post:
+      tags: [Users]
+      summary: 登陆账号
+      description: |
+        使用用户名、登陆邮箱、登陆手机等唯一标识之一登陆<br>
+        普通登陆身份验证有效时限为1天，且以上一次有效请求开始计时<br>
+        自动登陆身份验证有效时限为15天<br>
+        如果登陆失败超过3次，将在半个小时内禁止登陆，该限制可通过重置密码解除<br>
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - user
+              - password
+              properties:
+                user:
+                  type: string
+                  description: 用户唯一标识，可以是用户名或邮箱或手机
+                  example: 'XMatrix'
+                password:
+                  type: string
+                  description: 用户密码的SHA512散列值
+                  example: 'BA3253876AED6BC2...'
+                remember:
+                  type: boolean
+                  description: 是否自动登陆
+      responses:
+        '201':
+          description: 登陆成功
+        '400':
+          description: 登陆失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      error_user_or_password - 用户唯一标识或密码错误<br>
+                      invalid_email - 非法邮箱<br>
+                      invalid_name - 非法用户名<br>
+                      invalid_password - 非法密码散列值<br>
+                      invalid_user - 非法用户唯一标识<br>
+                      limit_error_count - 登陆错误次数上限<br>
+                    example: 'error_user_or_password'
+    delete:
+      tags: [Users]
+      summary: 登出账号
+      description: 该方法响应固定成功，即使未登陆
+      responses:
+        '204':
+          description: 登出成功
+
+  '/users/{extUid}':
+    parameters:
+    - name: extUid
+      in: path
+      required: true
+      description: 用户扩展Id，即(用户名)或(+id)或(me)
+      schema:
+        type: string
+    get:
+      tags: [Users]
+      summary: 获取用户信息
+      description: |
+        权限要求：游客、登陆用户(仅获取当前用户信息)。<br>
+        如果为`me`则获取当前用户信息。<br>
+        仅当获取当前用户信息时，才可获取用户登陆邮箱和用户登陆手机以及开发者联系等信息。<br>
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: 用户Id
+                    example: '5cc050bc4e08ae19ec1b936b'
                   email:
                     type: string
                     description: 用户登陆邮箱
@@ -629,31 +2199,47 @@ paths:
                         description: 联系电话
                         format: phone
                         example: '12345678901'
-                      app:
-                        type: object
-                        properties:
-                          limit:
-                            type: number
-                            description: 应用上限
-                            example: 10
-                          own:
-                            type: number
-                            description: 当前应用数量
-                            example: 3
-                      org:
-                        type: object
-                        properties:
-                          limit:
-                            type: number
-                            description: 组织上限
-                            example: 5
-                          own:
-                            type: number
-                            description: 当前组织数量
-                            example: 1
-                          join:
-                            type: number
-                            description: 加入组织数量
+                      appLimit:
+                        type: number
+                        description: 应用上限
+                        example: 10
+                      appOwn:
+                        type: number
+                        description: 当前应用数量
+                        example: 3
+                      orgJoin:
+                        type: number
+                        description: 加入组织数量
+                        example: 1
+                      orgLimit:
+                        type: number
+                        description: 组织上限
+                        example: 5
+                      orgOwn:
+                        type: number
+                        description: 当前组织数量
+                        example: 1
+                  log:
+                    type: object
+                    description: 日志信息
+                    properties:
+                      login:
+                        type: array
+                        description: 最近登陆日志
+                        items:
+                          type: object
+                          properties:
+                            time:
+                              type: string
+                              format: date-time
+                              description: 登陆时间
+                            ip:
+                              type: string
+                              description: 登陆IP
+                      password:
+                        type: string
+                        format: date-time
+                        description: 上次修改密码时间
         '400':
           description: 获取失败
           content:
@@ -664,27 +2250,33 @@ paths:
                   error:
                     type: string
                     description: |
-                      not_found - 用户不存在<br>
-                    example: 'not_found'
+                      invalid_ext_uid - 非法扩展Uid<br>
+                      not_exist_user - 用户不存在<br>
+                    example: 'not_exist_user'
         '401':
           $ref: '#/components/responses/401NotLoginError'
 
-  '/users/{name}/orgs':
+  '/users/{uid}/apps':
+    parameters:
+    - name: uid
+      in: path
+      required: true
+      description: 用户扩展Id，即(id)或(me)
+      schema:
+        type: string
     get:
       tags: [Users]
-      summary: 获取组织列表
+      summary: 获取应用列表
       description: |
-        权限要求：游客、登陆用户(仅指定`user`为`me`)。<br>
+        权限要求：游客、登陆用户(仅获取当前用户信息)。<br>
+        如果为`me`则获取当前用户信息。<br>
+        本接口获取指定用户所属应用的基本信息，<br>
+        如要获取组织的应用基本信息需使用接口`GET /orgs/{id}/apps`。<br>
+        如要获取应用的全部信息需使用接口`GET /apps/{extId}`。<br>
       parameters:
-      - name: name
-        in: path
-        required: true
-        description: 用户
-        schema:
-          type: string
       - name: page
         in: query
-        description: 页数
+        description: 当前资源页码
         schema:
           type: number
           default: 1
@@ -710,7 +2302,110 @@ paths:
                     properties:
                       page:
                         type: number
-                        description: 当前页
+                        description: 当前资源页码
+                        example: 1
+                      limit:
+                        type: number
+                        description: 每页资源数量
+                        example: 5
+                      total:
+                        type: number
+                        description: 资源总数
+                        example: 1
+                  data:
+                    type: array
+                    description: 应用集合
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: 应用Id
+                          example: '5cc050bc4e08ae19ec1b936b'
+                        name:
+                          type: string
+                          description: 应用名
+                          example: 'Violet'
+                        displayName:
+                          type: string
+                          description: 应用显示名
+                          example: '紫罗兰用户授权系统'
+                        state:
+                          type: number
+                          description: |
+                            应用当前状态<br>
+                            0 - 运行中<br>
+                            1 - 已暂停<br>
+                        avatar:
+                          type: string
+                          format: url
+                          description: 应用Icon的Url
+                          example: 'http://violet-1252808268.cosgz.myqcloud.com/0.png'
+                        description:
+                          type: string
+                          description: 应用简介
+                          example: '紫罗兰用户授权系统'
+        '400':
+          description: 获取失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_uid - 非法用户Uid<br>
+                      not_exist_user - 用户不存在<br>
+                    example: 'not_exist_user'
+        '401':
+          $ref: '#/components/responses/401NotLoginError'
+
+  '/users/{uid}/orgs':
+    parameters:
+    - name: uid
+      in: path
+      required: true
+      description: 用户扩展Id，即(id)或(me)
+      schema:
+        type: string
+    get:
+      tags: [Users]
+      summary: 获取组织列表
+      description: |
+        权限要求：游客、登陆用户(仅获取当前用户信息)。<br>
+        如果为`me`则获取当前用户信息。<br>
+        该接口获取指定用户所在组织的基本信息，如要获取组织的所有信息需使用接口`GET /orgs/{extId}`。<br>
+      parameters:
+      - name: page
+        in: query
+        description: 当前资源页码
+        schema:
+          type: number
+          default: 1
+          minimum: 1
+      - name: limit
+        in: query
+        description: 每页资源数量
+        schema:
+          type: number
+          default: 10
+          minimum: 1
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    type: object
+                    description: 分页获取信息
+                    properties:
+                      page:
+                        type: number
+                        description: 当前资源页码
                         example: 1
                       limit:
                         type: number
@@ -726,23 +2421,23 @@ paths:
                     items:
                       type: object
                       properties:
+                        id:
+                          type: string
+                          description: 组织Id
+                          example: '5cc843e6ed4e37124c4f1724'
                         name:
                           type: string
                           description: 组织名
                           example: 'XMatrix'
-                        description:
-                          type: string
-                          description: 组织简介
-                          example: 'Hello, world~'
-                        create_time:
-                          type: string
-                          description: 创建时间
-                          format: date-time
                         avatar:
                           type: string
                           description: 组织头像URL
                           format: url
                           example: 'http://violet-1252808268.cosgz.myqcloud.com/0.png'
+                        displayName:
+                          type: string
+                          description: 组织显示名
+                          example: '未知矩阵'
         '400':
           description: 获取失败
           content:
@@ -753,480 +2448,11 @@ paths:
                   error:
                     type: string
                     description: |
-                      invalid_limit - 非法每页资源数<br>
-                      invalid_page - 非法页码<br>
+                      invalid_uid - 非法用户Uid<br>
                       not_exist_user - 用户不存在<br>
                     example: 'not_exist_user'
         '401':
           $ref: '#/components/responses/401NotLoginError'
-
-  '/users/email':
-    post:
-      tags: [Users]
-      summary: 发送邮箱验证邮件
-      description: |
-        需图形验证放可发送邮箱验证邮件<br>
-        该方法不可多次请求，1分钟内仅可发送1次，且每次请求后均删除图形验证状态<br>
-        发送邮件是阻塞请求，即只有发送成功或失败该方法才作出响应<br>
-        用途包括`register`、`reset`、`update`，其中，<br>
-        `register`：注册，仅返回200、400错误；<br>
-        `reset`：重置密码，仅返回200、400错误；<br>
-        `update`：更新邮箱，仅返回200、400、401、403错误。<br>
-      requestBody:
-        required: true
-        content:
-          'application/json':
-            schema:
-              type: object
-              required:
-              - operator
-              - captcha
-              - email
-              properties:
-                operator:
-                  type: string
-                  description: 邮箱验证操作的用途
-                  enum:
-                  - register
-                  - reset
-                  - update
-                captcha:
-                  type: string
-                  description: 图形验证码
-                  example: '1234'
-                email:
-                  type: string
-                  description: 需要验证的邮箱
-                  format: email
-      responses:
-        '201':
-          description: 发送验证邮件成功
-        '400':
-          description: 发送验证邮件失败
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      通用错误<br>
-                      error_captcha - 图形验证码错误<br>
-                      invalid_captcha - 非法图形验证码<br>
-                      invalid_email - 非法邮箱<br>
-                      invalid_operator - 非法操作<br>
-                      limit_time - 发送时间间隔限制<br>
-                      not_exist_captcha - 不存在图形验证记录<br>
-                      send_fail - 发送失败<br>
-                      timeout_captcha - 超时图形验证记录<br><br>
-                      操作符`register`错误<br>
-                      exist_user - 用户已存在<br><br>
-                      操作符`reset`错误<br>
-                      not_exist_user - 用户不存在<br><br>
-                      操作符`update`错误<br>
-                      same_email - 邮箱相同<br>
-                    example: 'exist_email'
-        '401':
-          $ref: '#/components/responses/401NotLoginError'
-    put:
-      tags: [Users]
-      summary: 认证邮箱
-      description: |
-        邮箱验证状态时限为5分钟<br>
-        用途包括`register`、`reset`、`update`，其中，<br>
-        `register`：注册，仅返回200、400错误；<br>
-        `reset`：重置密码，仅返回200、400错误；<br>
-        `update`：更新邮箱，仅返回200、400、401、403错误。<br>
-      requestBody:
-        required: true
-        content:
-          'application/json':
-            schema:
-              type: object
-              required:
-              - operator
-              - code
-              properties:
-                operator:
-                  type: string
-                  description: 邮箱验证操作的用途
-                  enum:
-                  - register
-                  - reset
-                  - update
-                code:
-                  type: string
-                  description: 邮箱验证码
-                password:
-                  type: string
-                  description: 重置密码的SHA512散列值，用于`reset`操作符
-              example:
-                operator: 'register'
-                code: '123456'
-      responses:
-        '200':
-          description: 验证成功
-        '400':
-          description: 验证失败
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      error_code - 验证码错误<br>
-                      error_operator - 操作错误<br>
-                      invalid_code - 非法验证码<br>
-                      invalid_operator - 非法操作<br>
-                      not_exist_code - 不存在邮箱验证记录<br>
-                      timeout_code - 验证码已过期<br>
-                    example: 'error_code'
-        '401':
-          $ref: '#/components/responses/401NotLoginError'
-
-  '/users/levels':
-    post:
-      tags: [Users]
-      summary: 申请更改用户等级
-      description: |
-        权限要求：普通用户(仅申请开发者)、开发者(仅申请管理员)。<br>
-        开发者的申请可自动被接受，管理员的申请需审核。<br>
-        超级管理员的申请需在不存在超级管理员的情况方可申请成功。<br>
-      requestBody:
-        required: true
-        content:
-          'application/json':
-            schema:
-              type: object
-              required:
-              - level
-              - name
-              - email
-              - phone
-              properties:
-                level:
-                  type: number
-                  description: |
-                    申请的用户等级<br>
-                    1 - 开发者<br>
-                    50 - 管理员<br>
-                    99 - 超级管理员<br>
-                name:
-                  type: string
-                  description: 联系名称
-                email:
-                  type: string
-                  description: 联系邮箱
-                phone:
-                  type: string
-                  description: 联系电话
-                remark:
-                  type: string
-                  description: 备注
-              example:
-                level: 1
-                name: 'X先生'
-                email: 'a@xmatrix.studio'
-                phone: '12345678901'
-                remark: '想要成为开发者'
-      responses:
-        '201':
-          description: 申请成功
-        '400':
-          description: 申请失败
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      invalid_email - 非法邮箱<br>
-                      invalid_level - 非法等级<br>
-                      invalid_name - 非法联系名称<br>
-                      invalid_phone - 非法联系电话<br>
-                      invalid_remark - 非法备注<br>
-                      limit_level - 限制申请的等级<br>
-                      not_developer - 非开发者<br>
-                      not_normal_user - 非普通用户<br>
-                      repeat_request - 重复申请<br>
-        '401':
-          $ref: '#/components/responses/401NotLoginError'
-        '403':
-          $ref: '#/components/responses/403PermissionDenyError'
-
-  '/users/levels/apps':
-    post:
-      tags: [Users]
-      summary: 申请提高用户应用上限
-      description: |
-        权限要求：开发者以上。<br>
-        申请如果被接受，应用上限将提高5。<br>
-      requestBody:
-        required: true
-        content:
-          'application/json':
-            schema:
-              type: object
-              required:
-              - remark
-              properties:
-                remark:
-                  type: string
-                  description: |
-                    备注，最多256位<br>
-                  example: '用于XMatrix开发'
-      responses:
-        '201':
-          description: 申请成功
-        '400':
-          description: 申请失败
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      invalid_remark - 非法备注<br>
-                      repeat_request - 重复申请<br>
-        '401':
-          $ref: '#/components/responses/401NotLoginError'
-        '403':
-          $ref: '#/components/responses/403PermissionDenyError'
-
-  '/users/levels/orgs':
-    post:
-      tags: [Users]
-      summary: 申请提高用户组织上限
-      description: |
-        权限要求：开发者以上。<br>
-        申请如果被接受，组织上限将提高5。<br>
-      requestBody:
-        required: true
-        content:
-          'application/json':
-            schema:
-              type: object
-              required:
-              - remark
-              properties:
-                remark:
-                  type: string
-                  description: |
-                    备注，最多256位<br>
-                  example: '用于XMatrix开发'
-      responses:
-        '201':
-          description: 申请成功
-        '400':
-          description: 申请失败
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      invalid_remark - 非法备注<br>
-                      repeat_request - 重复申请<br>
-        '401':
-          $ref: '#/components/responses/401NotLoginError'
-        '403':
-          $ref: '#/components/responses/403PermissionDenyError'
-
-  '/users/phone':
-    post:
-      tags: [Users]
-      summary: 发送手机验证短信，验证码固定为123456
-      deprecated: true
-      description: |
-        需图形验证放可发送手机验证短信<br>
-        该方法不可多次请求，1分钟内仅可发送1次，且每次请求后均删除图形验证状态<br>
-        发送短信是阻塞请求，即只有发送成功或失败该方法才作出响应<br>
-        用途包括`register`、`reset`、`update`，其中，<br>
-        `register`：注册，仅返回200、400错误；<br>
-        `reset`：重置密码，仅返回200、400错误；<br>
-        `update`：更新手机，仅返回200、400、401、403错误。<br>
-      requestBody:
-        required: true
-        content:
-          'application/json':
-            schema:
-              type: object
-              required:
-              - operator
-              - captcha
-              - phone
-              properties:
-                operator:
-                  type: string
-                  description: 手机验证操作的用途
-                  enum:
-                  - register
-                  - reset
-                  - update
-                captcha:
-                  type: string
-                  description: 图形验证码
-                  example: '1234'
-                phone:
-                  type: string
-                  description: 需要验证的手机
-                  format: phone
-                  example: '12345678901'
-      responses:
-        '201':
-          description: 发送验证短信成功
-        '400':
-          description: 发送验证短信失败
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      通用错误<br>
-                      error_captcha - 图形验证码错误<br>
-                      invalid_captcha - 非法图形验证码<br>
-                      invalid_operator - 非法操作<br>
-                      invalid_phone - 非法手机号码<br>
-                      limit_time - 发送时间间隔限制<br>
-                      not_exist_captcha - 不存在图形验证记录<br>
-                      send_fail - 发送失败<br>
-                      timeout_captcha - 超时图形验证记录<br><br>
-                      操作符`register`错误<br>
-                      exist_user - 用户已存在<br><br>
-                      操作符`reset`错误<br>
-                      not_exist_user - 用户不存在<br><br>
-                      操作符`update`错误<br>
-                      same_phone - 手机号码相同<br>
-                    example: 'exist_email'
-        '401':
-          $ref: '#/components/responses/401NotLoginError'
-    put:
-      tags: [Users]
-      summary: 认证手机
-      description: |
-        手机验证状态时限为5分钟<br>
-        用途包括`register`、`reset`、`update`，其中，<br>
-        `register`：注册，仅返回200、400错误；<br>
-        `reset`：重置密码，仅返回200、400错误；<br>
-        `update`：更新手机，仅返回200、400、401、403错误。<br>
-      requestBody:
-        required: true
-        content:
-          'application/json':
-            schema:
-              type: object
-              required:
-              - operator
-              - code
-              properties:
-                operator:
-                  type: string
-                  description: 手机验证操作的用途
-                  enum:
-                  - register
-                  - reset
-                  - update
-                code:
-                  type: string
-                  description: 手机验证码
-                password:
-                  type: string
-                  description: 重置密码的SHA512散列值，用于`reset`操作符
-              example:
-                operator: 'register'
-                code: '123456'
-      responses:
-        '200':
-          description: 验证成功
-        '400':
-          description: 验证失败
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      error_code - 验证码错误<br>
-                      error_operator - 操作错误<br>
-                      invalid_code - 非法验证码<br>
-                      invalid_operator - 非法操作<br>
-                      not_exist_code - 不存在邮箱验证记录<br>
-                      timeout_code - 验证码已过期<br>
-                    example: 'error_code'
-        '401':
-          $ref: '#/components/responses/401NotLoginError'
-
-  '/users/session':
-    post:
-      tags: [Users]
-      summary: 登陆账号
-      description: |
-        使用用户名、登陆邮箱、登陆手机等唯一标识之一登陆<br>
-        普通登陆身份验证有效时限为1天，且以上一次有效请求开始计时<br>
-        自动登陆身份验证有效时限为15天<br>
-        如果登陆失败超过3次，将在半个小时内禁止登陆，该限制可通过重置密码解除<br>
-      requestBody:
-        required: true
-        content:
-          'application/json':
-            schema:
-              type: object
-              required:
-              - user
-              - password
-              properties:
-                user:
-                  type: string
-                  description: 用户唯一标识，可以是用户名或邮箱或手机
-                  example: 'XMatrix'
-                password:
-                  type: string
-                  description: 用户密码的SHA512散列值
-                  example: 'BA3253876AED6BC2...'
-                remember:
-                  type: boolean
-                  description: 是否自动登陆
-      responses:
-        '201':
-          description: 登陆成功
-        '400':
-          description: 登陆失败
-          content:
-            'application/json':
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: |
-                      error_user_or_password - 用户唯一标识或密码错误<br>
-                      invalid_email - 非法邮箱<br>
-                      invalid_name - 非法用户名<br>
-                      invalid_password - 非法密码散列值<br>
-                      invalid_user - 非法用户唯一标识<br>
-                      limit_error_count - 登陆错误次数上限<br>
-                    example: 'error_user_or_password'
-    delete:
-      tags: [Users]
-      summary: 登出账号
-      description: 该方法响应固定成功，即使未登陆
-      responses:
-        '204':
-          description: 登出成功
 
   '/util/captcha':
     get:
