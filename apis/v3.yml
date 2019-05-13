@@ -175,7 +175,7 @@ paths:
                       invalid_app_key - 非法应用Key<br>
                     example: string
 
-  '/account/auth':
+  '/verify/authorize':
     get:
       tags: [Verify]
       summary: 跳转到Violet登陆
