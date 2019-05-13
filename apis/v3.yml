@@ -14,7 +14,7 @@ info:
     url: 'https://opensource.org/licenses/MIT'
 
 servers:
-- url: 'https://api.xmatrix.studio/violet/v3'
+- url: 'https://oauth.xmatrix.studio/v3'
   description: XMatrix OAuth APIs
 
 tags:
@@ -46,7 +46,7 @@ components:
         type: string
 
 paths:
-  '/user':
+  '/users/info':
     get:
       tags: [User]
       summary: 获取用户基本信息
@@ -175,7 +175,7 @@ paths:
                       invalid_app_key - 非法应用Key<br>
                     example: string
 
-  '/verify/authorize':
+  '/account/auth':
     get:
       tags: [Verify]
       summary: 跳转到Violet登陆
@@ -192,7 +192,7 @@ paths:
       - name: appId
         in: query
         required: true
-        description: 应用Id 
+        description: 应用Id
         schema:
           type: string
       - name: state
@@ -228,14 +228,6 @@ paths:
       - name: quickMode
         in: query
         description: 快速授权模式，如果用户已经对该客户端授权，则直接返回结果
-        required: false
-        schema:
-          type: boolean
-          default: true
-      - name: isMobile
-        in: query
-        description: |
-          是否指定移动端样式。不传则自动适配<br/>
         required: false
         schema:
           type: boolean
