@@ -185,7 +185,6 @@ paths:
         description: |
           授权类型<br>
           code      - 成功授权之后会通过get回调地址传递code和state<br>
-          code_post - 成功授权之后会通过post回调地址传递code和state<br>
         required: true
         schema:
           type: string
