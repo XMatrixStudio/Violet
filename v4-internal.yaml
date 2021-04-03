@@ -1,0 +1,119 @@
+openapi: '3.0.3'
+
+info:
+  version: '4.0.0-alpha'
+  title: Violet User Authorization System Internal APIs
+  description: Violet用户授权系统内部API列表
+  termsOfService: 'https://oauth.xmatrix.studio/terms'
+  contact:
+    name: XMatrix Studio
+    url: 'https://oauth.xmatrix.studio/support'
+    email: a@xmatrix.studio
+  license:
+    name: MIT License
+    url: 'https://opensource.org/licenses/MIT'
+
+
+servers:
+  - url: 'https://oauth.xmatrix.studio/api/v4/i/'
+    description: XMatrix Authorization Service APIs
+  - url: 'http://localhost:30001/api/v4/i/'
+    description: Localhost Authorization Service APIs
+
+tags:
+  - name: Utils
+    description: 工具类接口，获取图形验证码、发送邮件等
+
+paths:
+  '/utils/captcha':
+    get:
+      tags: [Utils]
+      summary: 获取图形验证码
+      description: |
+        请求权限：无。<br>
+        图形验证码的有效期为5分钟。
+      parameters:
+        - name: business_name
+          in: query
+          required: true
+          description: 业务名
+          schema:
+            type: string
+            enum: ['register']
+      responses:
+        200:
+          description: 请求成功
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: number
+                    description: 状态码
+                  msg:
+                    type: string
+                    description: 状态消息
+                  data:
+                    type: object
+                    properties:
+                      captcha_data:
+                        type: string
+                        description: 验证码Base64串
+                      ticket:
+                        type: string
+                        description: 行为票据，用于后续操作
+              example:
+                code: 0
+                msg: success
+                data:
+                  captcha_data: 'iVBORw0KGgoAAAANSUhEUgAAAFIAAAA...'
+                  ticket: 'register_1603553623'
+
+  '/utils/email':
+    post:
+      tags: [Utils]
+      summary: 发送邮箱验证码
+      description: |
+        请求权限：无。<br>
+        邮箱验证码的有效期为10分钟，发送邮箱频率每分钟仅可发送一次。
+      requestBody:
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+                - captcha
+                - email
+                - ticket
+              properties:
+                captcha:
+                  type: string
+                  description: 图形验证码
+                email:
+                  type: string
+                  description: 邮箱地址
+                ticket:
+                  type: string
+                  description: 行为票据
+              example: 
+                captcha: '1234'
+                email: 'a@xmatrix.studio'
+                ticket: 'register_1603553623'
+      responses:
+        200:
+          description: 请求成功
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: number
+                    description: 状态码
+                  msg:
+                    type: string
+                    description: 状态消息
+              example:
+                code: 0
+                msg: success

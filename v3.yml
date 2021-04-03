@@ -1,0 +1,380 @@
+openapi: 3.0.2
+
+info:
+  version: '3.0.0-alpha'
+  title: Violet User System APIs
+  description: Violet用户授权系统API列表
+  termsOfService: 'https://xmatrix.studio/terms'
+  contact:
+    name: XMatrix Studio
+    url: 'https://oauth.xmatrix.studio/support'
+    email: 'a@xmatrix.studio'
+  license:
+    name: MIT License
+    url: 'https://opensource.org/licenses/MIT'
+
+servers:
+- url: 'https://oauth.xmatrix.studio/v3'
+  description: XMatrix OAuth APIs
+
+tags:
+- name: User
+  description: 与用户相关的接口，包括用户信息获取等
+- name: Util
+  description: 工具类接口，包括AppSecret生成等
+- name: Verify
+  description: 与认证相关的接口，包括获取Token等
+
+components:
+  parameters:
+    token:
+      name: token
+      in: query
+      description: |
+        用户令牌，通过`/verify/token`使用Code换取
+      required: true
+      schema:
+        type: string
+    appSecret:
+      name: appSecret
+      in: query
+      required: true
+      description: |
+        通过网站key加密的一段认证信息(1分钟后失效)<br>
+        可使用SDK生成，也可以通过`/util/secret`生成<br>
+      schema:
+        type: string
+
+paths:
+  '/users/info':
+    get:
+      tags: [User]
+      summary: 获取用户基本信息
+      description: |
+        当授权范围仅为`base`时，仅返回用户Id、头像、昵称。<br>
+        当授权范围包含`info`时，返回用户Id与所有基本信息。<br>
+      parameters:
+      - $ref: '#/components/parameters/token'
+      - $ref: '#/components/parameters/appSecret'
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: 用户Id
+                    example: 'ABCD'
+                  avatar:
+                    type: string
+                    description: 头像URL
+                    format: url
+                    example: 'http://violet-1252808268.cosgz.myqcloud.com/0.png'
+                  bio:
+                    type: string
+                    description: 个人简历
+                    example: 'Hello, world!'
+                  birthday:
+                    type: string
+                    description: 生日
+                    format: date-time
+                  email:
+                    type: string
+                    description: 联系邮箱
+                    format: email
+                  gender:
+                    type: number
+                    description: |
+                      性别<br>
+                      0 - 未知<br>
+                      1 - 男<br>
+                      2 - 女<br>
+                    enum:
+                    - 0
+                    - 1
+                    - 2
+                  location:
+                    type: string
+                    description: 地址
+                    example: 'Guangzhou, China'
+                  nickname:
+                    type: string
+                    description: 昵称
+                    example: '未知矩阵'
+                  phone:
+                    type: string
+                    description: 联系电话
+                    format: phone
+                    example: '12345678901'
+                  url:
+                    type: string
+                    description: 个人主页
+                    format: url
+                    example: 'https://oauth.xmatrix.studio/'
+        '400':
+          description: 获取失败
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_app_secret - 非法应用Secret<br>
+                      invalid_token - 非法用户令牌<br>
+                      timeout_token - 用户令牌已过期<br>
+                    example: 'timeout_token'
+
+
+  '/util/secret':
+    get:
+      tags: [Util]
+      summary: 获取AppSecret
+      description: |
+        AppSecret推荐通过SDK生成，如果你的平台上没有对应的SDK可以使用此API生成，同样只有1分钟有效期。<br>
+        AppSecret的生成算法是公开的，建议自己生成或通过SDK生成。<br>
+      parameters:
+      - name: appId
+        in: query
+        description: 应用Id
+        required: true
+        schema:
+          type: string
+      - name: appKey
+        in: query
+        description: 应用Key，注意保管应用Key，建议定时更改，以防泄露导致恶意请求被封号。
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appSecret:
+                    type: string
+                    example: string
+        '400':
+          description: 获取失败
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_app_id - 非法应用Id<br>
+                      invalid_app_key - 非法应用Key<br>
+                    example: string
+
+  '/verify/authorize':
+    get:
+      tags: [Verify]
+      summary: 跳转到Violet登陆
+      parameters:
+      - name: responseType
+        in: query
+        description: |
+          授权类型<br>
+          code      - 成功授权之后会通过get回调地址传递code和state<br>
+        required: true
+        schema:
+          type: string
+      - name: appId
+        in: query
+        required: true
+        description: 应用Id
+        schema:
+          type: string
+      - name: state
+        in: query
+        description: |
+          开发者服务端的状态值。<br>
+          用于第三方应用防止CSRF攻击，成功授权后回调时会原样带回。<br>
+          请务必严格按照流程检查用户与state参数状态的绑定。<br>
+        required: true
+        schema:
+          type: string
+      - name: scope
+        in: query
+        description: |
+          请求的的权限列表，使用`,`分割，默认为base<br>
+          base  - 用户Id与基本信息(昵称、头像)[必须]<br>
+          info  - 用户Id与所有基本信息<br>
+          email - 通过Violet向用户发送邮件通知(用户中心可以管理)<br>
+          建议控制授权项的数量，只传入必要的接口名称，因为授权项越多，用户越可能拒绝进行任何授权。<br>
+        required: false
+        schema:
+          type: string
+          default: 'base'
+      - name: redirectUrl
+        in: query
+        description: |
+          回调地址，成功授权后的回调地址，必须是应用回调域下的地址。注意需要将url进行URLEncode。<br>
+          例：回调地址为https://xx.xmatrix.studio/api/auth，回调域必须为https://xx.xmatrix.studio<br>
+          编码后为：https%3a%2f%2fxx.xmatrix.studio%2fapi%2fauth<br>
+        required: false
+        schema:
+          type: string
+      - name: quickMode
+        in: query
+        description: 快速授权模式，如果用户已经对该客户端授权，则直接返回结果
+        required: false
+        schema:
+          type: boolean
+          default: false
+      responses:
+        '301':
+          description: |
+            用户授权成功，跳转到请求中的回调地址，并附带code和state参数
+            例：https://xx.xmatrix.studio/api/auth?code=xxxx&state=xxxxx
+          content:
+            'application/json | querystring':
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    description: |
+                      Authorization code，注意此code会在1分钟内过期<br>
+                    example: 'ABC'
+                  state:
+                    type: string
+                    description: |
+                      Client端的状态值，原样带回<br>
+                      请务必严格按照流程检查用户与state参数状态的绑定。<br>
+                    example: 'ABC'
+
+  '/Verify/Password':
+    post:
+      tags:
+        - Verify
+      deprecated: true
+      summary: |
+        使用用户账号密码登陆(客户端需要在Violet开发者中心请求权限)
+      parameters:
+        - name: response_type
+          in: query
+          description: |
+            授权类型，此值固定为"password"
+          required: true
+          schema:
+            type: string
+        - name: client_id
+          in: query
+          required: true
+          description: |
+            客户端ID
+          schema:
+            type: string
+        - name: user_name
+          in: query
+          required: true
+          description: |
+            用户名
+          schema:
+            type: string
+        - name: user_password
+          in: query
+          required: true
+          description: |
+            用户密码(sha512处理)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: |
+            验证成功
+          content:
+            回调参数:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    description: |
+                      Authorization code，注意此code会在1分钟内过期
+                    example: string
+        '403':
+          description: |
+            拒绝授权
+          content:
+            回调参数:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    description: |
+                      拒绝原因：<br/>
+                      error_password -  用户名或密码错误<br/>
+                      out_of_limit   -  请求过于频繁(10分钟内超过5次)
+                    example: string
+
+  '/verify/token':
+    post:
+      tags: [Verify]
+      summary: 验证code，生成accessToken
+      requestBody:
+        content:
+          'application/json':
+            schema:
+              type: object
+              required:
+              - appSecret
+              - code
+              - grantType
+              properties:
+                appSecret:
+                  type: string
+                  description: 通过网站key加密的一段认证信息(1分钟后失效)
+                  example: 'ABC'
+                code:
+                  type: string
+                  description: 用户确认授权后返回的Authorization code，注意此code会在1分钟内过期。
+                  example: 'ABC'
+                grantType:
+                  type: string
+                  description: 授权类型，此值固定为`authorization_code`
+                  example: 'authorization_code'
+      responses:
+        '200':
+          description: 认证成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: |
+                      访问令牌(有效生命周期15天)，重新获取后上一个令牌立即失效
+                    example: string
+                  userId:
+                    type: string
+                    description: 用户Id
+                    example: '598ee9df75d8ad07f2f6f0d1'
+        '400':
+          description: |
+            获取token失败
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: |
+                      invalid_app_secret - 非法应用Secret<br>
+                      invalid_code - 非法Code<br>
+                      invalid_grant_type - 非法授权类型<br>
+                      timeout_code - Code已过期<br>
+                    example: 'timeout_code'
