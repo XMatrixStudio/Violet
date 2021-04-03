@@ -163,7 +163,7 @@
                       "properties": {
                         "ticket": {
                           "type": "string",
-                          "descript": "验证票据，用于验证后续请求的合法性"
+                          "description": "验证票据，用于验证后续请求的合法性"
                         }
                       }
                     }
