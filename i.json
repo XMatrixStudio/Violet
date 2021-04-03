@@ -1,0 +1,196 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Violet Internal APIs",
+    "description": "Violet用户授权系统内部API列表",
+    "termsOfService": "https://oauth.xmatrix.studio/terms",
+    "contact": {
+      "name": "XMatrix Studio",
+      "url": "https://oauth.xmatrix.studio/support",
+      "email": "a@xmatrix.studio"
+    },
+    "license": {
+      "name": "MIT License",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "version": "4.0.0-alpha"
+  },
+  "servers": [
+    {
+      "url": "https://oauth.xmatrix.studio/api/i",
+      "description": "XMatrix官方服务器"
+    },
+    {
+      "url": "http://localhost:3000/i",
+      "description": "本地服务器"
+    }
+  ],
+  "paths": {
+    "/utils/captcha": {
+      "get": {
+        "tags": [
+          "Utils"
+        ],
+        "summary": "获取图形验证码",
+        "description": "请求权限：无。<br>\n图形验证码的有效期为5分钟。\n",
+        "parameters": [
+          {
+            "name": "business_name",
+            "in": "query",
+            "required": true,
+            "description": "验证业务场景",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "register"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "number",
+                      "description": "状态码"
+                    },
+                    "msg": {
+                      "type": "string",
+                      "description": "状态消息"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "captcha_data": {
+                          "type": "string",
+                          "description": "验证码Base64串"
+                        },
+                        "ticket": {
+                          "type": "string",
+                          "description": "验证票据，用于验证后续请求的合法性"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "msg": "success",
+                  "data": {
+                    "captcha_data": "iVBORw0KGgoAAAANSUhEUgAAAFIAAAA...",
+                    "ticket": "251011aff0d041ed5aaab32992ef1b6e"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/utils/email": {
+      "post": {
+        "tags": [
+          "Utils"
+        ],
+        "summary": "发送邮箱验证码",
+        "description": "请求权限：无。<br>\n邮箱验证码的有效期为10分钟，发送邮箱频率每分钟仅可发送一次。\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "business_name",
+                  "captcha",
+                  "email",
+                  "ticket"
+                ],
+                "properties": {
+                  "business_name": {
+                    "type": "string",
+                    "description": "验证业务场景",
+                    "enum": [
+                      "register"
+                    ]
+                  },
+                  "captcha": {
+                    "type": "string",
+                    "description": "图形验证码"
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "邮箱地址"
+                  },
+                  "ticket": {
+                    "type": "string",
+                    "description": "验证票据"
+                  }
+                },
+                "example": {
+                  "business_name": "register",
+                  "captcha": "1234",
+                  "email": "a@xmatrix.studio",
+                  "ticket": "251011aff0d041ed5aaab32992ef1b6e"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "number",
+                      "description": "状态码"
+                    },
+                    "msg": {
+                      "type": "string",
+                      "description": "状态消息"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "ticket": {
+                          "type": "string",
+                          "descript": "验证票据，用于验证后续请求的合法性"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "code": 0,
+                  "msg": "success",
+                  "data": {
+                    "ticket": "8dbe88a1fbbb27b84f6fe1ed16a5f315"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Users",
+      "description": "用户接口，包括用户鉴权、用户信息等"
+    },
+    {
+      "name": "Utils",
+      "description": "工具接口，包括图形校验、邮箱校验等"
+    }
+  ]
+}
