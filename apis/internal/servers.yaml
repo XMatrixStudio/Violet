@@ -1,0 +1,4 @@
+- url: 'https://oauth.xmatrix.studio/api/i'
+  description: XMatrix官方服务器
+- url: 'http://localhost:3000/i'
+  description: 本地服务器

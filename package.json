@@ -1,0 +1,10 @@
+{
+  "name": "violet",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "mkdir build && swagger-cli bundle -o build/i.json apis/internal/index.yaml"
+  },
+  "dependencies": {
+    "@apidevtools/swagger-cli": "^4.0.4"
+  }
+}

@@ -1,0 +1,12 @@
+openapi: '3.0.3'
+info:
+  $ref: info.yaml
+servers:
+  $ref: servers.yaml
+paths:
+  '/utils/captcha':
+    $ref: paths/utils.captcha.yaml
+  '/utils/email':
+    $ref: paths/utils.email.yaml
+tags:
+  $ref: tags.yaml

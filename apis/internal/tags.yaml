@@ -1,0 +1,4 @@
+- name: Users
+  description: 用户接口，包括用户鉴权、用户信息等
+- name: Utils
+  description: 工具接口，包括图形校验、邮箱校验等

@@ -1,0 +1,11 @@
+title: Violet Internal APIs
+description: Violet用户授权系统内部API列表
+termsOfService: 'https://oauth.xmatrix.studio/terms'
+contact:
+  name: XMatrix Studio
+  url: 'https://oauth.xmatrix.studio/support'
+  email: a@xmatrix.studio
+license:
+  name: MIT License
+  url: 'https://opensource.org/licenses/MIT'
+version: '4.0.0-alpha'

@@ -1,0 +1,43 @@
+get:
+  tags: [Utils]
+  summary: 获取图形验证码
+  description: |
+    请求权限：无。<br>
+    图形验证码的有效期为5分钟。
+  parameters:
+    - name: business_name
+      in: query
+      required: true
+      description: 验证业务场景
+      schema:
+        type: string
+        enum: ['register']
+  responses:
+    200:
+      description: 请求成功
+      content:
+        'application/json':
+          schema:
+            type: object
+            properties:
+              code:
+                type: number
+                description: 状态码
+              msg:
+                type: string
+                description: 状态消息
+              data:
+                type: object
+                properties:
+                  captcha_data:
+                    type: string
+                    description: 验证码Base64串
+                  ticket:
+                    type: string
+                    description: 验证票据，用于验证后续请求的合法性
+          example:
+            code: 0
+            msg: success
+            data:
+              captcha_data: 'iVBORw0KGgoAAAANSUhEUgAAAFIAAAA...'
+              ticket: '251011aff0d041ed5aaab32992ef1b6e'
